@@ -228,6 +228,8 @@ String pinstrapToName(uint8_t pinstrap) {
   switch (pinstrap) {
     case 0x3C:
       return "Buzzer";
+    case 0x58:
+      return "Joystick";
     case 0x7C:
       return "Buttons";
     case 0x76:
