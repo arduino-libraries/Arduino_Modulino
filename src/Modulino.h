@@ -182,6 +182,42 @@ protected:
   uint8_t match[1] = { 0x7C };  // same as fw main.c
 };
 
+class ModulinoJoystick : public Module {
+public:
+  ModulinoJoystick(uint8_t address = 0xFF)
+    : Module(address, "JOYSTICK") {}
+  bool update() {
+    uint8_t buf[3];
+    auto res = read((uint8_t*)buf, 3);
+    auto ret = res && (buf[0] != last_status[0] || buf[1] != last_status[1] || buf[2] != last_status[2]);
+    last_status[0] = buf[0];
+    last_status[1] = buf[1];
+    last_status[2] = buf[2];
+    return ret;
+  }
+  PinStatus isPressed() {
+    return last_status[2] ? HIGH : LOW;
+  }
+  int8_t getX() {
+    return (last_status[0] < 128 ? (128 - last_status[0]) : -(last_status[0] - 128));
+  }
+  int8_t getY() {
+    return (last_status[1] < 128 ? (128 - last_status[1]) : -(last_status[1] - 128));
+  }
+  virtual uint8_t discover() {
+    for (unsigned int i = 0; i < sizeof(match)/sizeof(match[0]); i++) {
+      if (scan(match[i])) {
+        return match[i];
+      }
+    }
+    return 0xFF;
+  }
+private:
+  uint8_t last_status[3];
+protected:
+  uint8_t match[1] = { 0x58 };  // same as fw main.c
+};
+
 class ModulinoBuzzer : public Module {
 public:
   ModulinoBuzzer(uint8_t address = 0xFF)
