@@ -639,4 +639,51 @@ private:
   _distance_api* api = nullptr;
 };
 
+class ModulinoRelay : public Module {
+public:
+  ModulinoRelay(uint8_t address = 0xFF)
+    : Module(address, "RELAY") {}
+  bool update() {
+    uint8_t buf[3];
+    auto res = read((uint8_t*)buf, 3);
+    auto ret = res && (buf[0] != last_status[0] || buf[1] != last_status[1] || buf[2] != last_status[2]);
+    last_status[0] = buf[0];
+    last_status[1] = buf[1];
+    last_status[2] = buf[2];
+    return ret;
+  }
+  void on() {
+    uint8_t buf[3];
+    buf[0] = 1;
+    buf[1] = 0;
+    buf[2] = 0;
+    write((uint8_t*)buf, 3);
+    return;
+  }
+  void off() {
+    uint8_t buf[3];
+    buf[0] = 0;
+    buf[1] = 0;
+    buf[2] = 0;
+    write((uint8_t*)buf, 3);
+    return;
+  }
+  bool getStatus() {
+    update();
+    return last_status[0];
+  }
+  virtual uint8_t discover() {
+    for (unsigned int i = 0; i < sizeof(match)/sizeof(match[0]); i++) {
+      if (scan(match[i])) {
+        return match[i];
+      }
+    }
+    return 0xFF;
+  }
+private:
+  bool last_status[3];
+protected:
+  uint8_t match[1] = { 0x28 };  // same as fw main.c
+};
+
 #endif

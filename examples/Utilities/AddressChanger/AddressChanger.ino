@@ -232,6 +232,8 @@ String pinstrapToName(uint8_t pinstrap) {
       return "Joystick";
     case 0x7C:
       return "Buttons";
+    case 0x28:
+      return "Opto Relay";
     case 0x76:
     case 0x74:
       return "Encoder";
