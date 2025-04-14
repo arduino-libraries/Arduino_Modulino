@@ -22,6 +22,16 @@
 #define HardwareI2C   TwoWire
 #endif
 
+typedef enum {
+  STOP = 0,
+  GENTLE = 25,
+  MODERATE = 30,
+  MEDIUM = 35,
+  INTENSE = 40,
+  POWERFUL = 45,
+  MAXIMUM = 50
+} VibroPowerLevel;
+
 void __increaseI2CPriority();
 
 class ModulinoClass {
@@ -265,12 +275,23 @@ class ModulinoVibro : public Module {
 public:
   ModulinoVibro(uint8_t address = 0xFF)
     : Module(address, "VIBRO") {}
-  void on(size_t len_ms) {
-    uint8_t buf[8];
-    uint32_t freq = 100;
+  void on(size_t len_ms, bool block, int power = MAXIMUM ) {
+    uint8_t buf[12];
+    uint32_t freq = 1000;
     memcpy(&buf[0], &freq, 4);
     memcpy(&buf[4], &len_ms, 4);
-    write(buf, 8);
+    memcpy(&buf[8], &power, 4);
+    write(buf, 12);
+    if (block) {
+      delay(len_ms);
+      off();
+    }
+  }
+  void on(size_t len_ms) {
+    on(len_ms, false);
+  }
+  void on(size_t len_ms, VibroPowerLevel power) {
+    on(len_ms, false, power);
   }
   void off() {
     uint8_t buf[8];
