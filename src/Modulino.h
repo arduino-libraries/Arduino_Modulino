@@ -189,11 +189,20 @@ public:
   bool update() {
     uint8_t buf[3];
     auto res = read((uint8_t*)buf, 3);
-    auto ret = res && (buf[0] != last_status[0] || buf[1] != last_status[1] || buf[2] != last_status[2]);
-    last_status[0] = buf[0];
-    last_status[1] = buf[1];
+    auto x = buf[0];
+    auto y =  buf[1];
+    map_value(x, y);
+    auto ret = res && (x != last_status[0] || y != last_status[1] || buf[2] != last_status[2]);
+    if (!ret) {
+      return false;
+    }
+    last_status[0] = x;
+    last_status[1] = y;
     last_status[2] = buf[2];
     return ret;
+  }
+  void setDeadZone(uint8_t dz_th) {
+    _dz_threshold = dz_th;
   }
   PinStatus isPressed() {
     return last_status[2] ? HIGH : LOW;
@@ -212,7 +221,14 @@ public:
     }
     return 0xFF;
   }
+  void map_value(uint8_t &x, uint8_t &y) {
+    if (x > 128 - _dz_threshold &&  x < 128 + _dz_threshold && y > 128 - _dz_threshold && y < 128 + _dz_threshold) {
+        x = 128;
+        y = 128;
+    }
+  }
 private:
+  uint8_t _dz_threshold = 26;
   uint8_t last_status[3];
 protected:
   uint8_t match[1] = { 0x58 };  // same as fw main.c
