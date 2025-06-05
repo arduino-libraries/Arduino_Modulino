@@ -15,6 +15,8 @@
 #include "Arduino_LSM6DSOX.h"
 #include <Arduino_LPS22HB.h>
 #include <Arduino_HS300x.h>
+#include "Arduino_LTR381RGB.h"
+#include "Arduino.h"
 //#include <SE05X.h>  // need to provide a way to change Wire object
 
 #ifndef ARDUINO_API_VERSION
@@ -440,10 +442,13 @@ protected:
   uint8_t match[2] = { 0x74, 0x76 };
 };
 
+extern ModulinoColor BLACK;
 extern ModulinoColor RED;
 extern ModulinoColor BLUE;
 extern ModulinoColor GREEN;
+extern ModulinoColor YELLOW;
 extern ModulinoColor VIOLET;
+extern ModulinoColor CYAN;
 extern ModulinoColor WHITE;
 
 class ModulinoMovement : public Module {
@@ -563,7 +568,111 @@ private:
 };
 
 class ModulinoLight : public Module {
+public:
+  bool begin() {
+    if (_light == nullptr) {
+      _light = new LTR381RGBClass(*((TwoWire*)getWire()), 0x53);
+    }
+    initialized = _light->begin();
+    __increaseI2CPriority();
+    return initialized != 0;
+  }
+  operator bool() {
+    return (initialized != 0);
+  }
+  bool update() {
+    if (initialized) {
+      return _light->readAllSensors(r, g, b, rawlux, lux, ir);
+    }
+    return 0;
+  }
+  ModulinoColor getColor() {
+    return ModulinoColor(r, g, b);
+  }
+  String getColorApproximate() {
+    String color = "UNKNOWN";
+    float h, s, l;
+    _light->getHSL(r, g, b, h, s, l);
 
+    if (l > 90.0) {
+        return "WHITE";
+    }
+    if (l < 10.0) {
+        return "BLACK";
+    }
+    if (s < 10.0) {
+        if (l < 50.0) {
+            return "DARK GRAY";
+        } else {
+            return "LIGHT GRAY";
+        }
+    }
+
+    if (h < 0) {
+        h = 360 + h;
+    }
+    if (h < 15 || h >= 345) {
+        color = "RED";
+    } else if (h < 45) {
+        color = "ORANGE";
+    } else if (h < 75) {
+        color = "YELLOW";
+    } else if (h < 105) {
+        color = "LIME";
+    } else if (h < 135) {
+        color = "GREEN";
+    } else if (h < 165) {
+        color = "SPRING GREEN";
+    } else if (h < 195) {
+        color = "CYAN";
+    } else if (h < 225) {
+        color = "AZURE";
+    } else if (h < 255) {
+        color = "BLUE";
+    } else if (h < 285) {
+        color = "VIOLET";
+    } else if (h < 315) {
+        color = "MAGENTA";
+    } else {
+        color = "ROSE";
+    }
+
+    // Adjust color based on lightness
+    if (l < 20.0) {
+        color = "VERY DARK " + color;
+    } else if (l < 40.0) {
+        color = "DARK " + color;
+    } else if (l > 80.0) {
+        color = "VERY LIGHT " + color;
+    } else if (l > 60.0) {
+        color = "LIGHT " + color;
+    }
+
+    // Adjust color based on saturation
+    if (s < 20.0) {
+        color = "VERY PALE " + color;
+    } else if (s < 40.0) {
+        color = "PALE " + color;
+    } else if (s > 80.0) {
+        color = "VERY VIVID " + color;
+    } else if (s > 60.0) {
+        color = "VIVID " + color;
+    }
+    return color;
+  }
+  int getAL() {
+    return rawlux;
+  }
+  int getLux() {
+    return lux;
+  }
+  int getIR() {
+    return ir;
+  }
+private:
+  LTR381RGBClass* _light = nullptr;
+  int r, g, b, rawlux, lux, ir;
+  int initialized = 0;
 };
 
 class _distance_api {
