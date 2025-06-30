@@ -30,3 +30,10 @@ void __increaseI2CPriority() {
 #else
 void __increaseI2CPriority() {}
 #endif
+
+int ModulinoHubPort::select() {
+    return _hub->select(_port);
+}
+int ModulinoHubPort::clear() {
+    return _hub->clear();
+}
