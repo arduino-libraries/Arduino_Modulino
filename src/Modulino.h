@@ -60,14 +60,53 @@ public:
   friend class Module;
 protected:
   HardwareI2C* _wire;
+  friend class ModulinoHub;
+  friend class ModulinoHubPort;
 };
 
 extern ModulinoClass Modulino;
 
+// Forward declaration of ModulinoHub
+class ModulinoHub;
+
+class ModulinoHubPort {
+  public:
+    ModulinoHubPort(int port, ModulinoHub* hub) : _port(port), _hub(hub) {}
+    int select();
+    int clear();
+  private:
+    int _port;
+    ModulinoHub* _hub;
+};
+
+class ModulinoHub {
+  public:
+    ModulinoHub(int address = 0x70) : _address(address){  }
+    ModulinoHubPort* port(int _port) {
+      return new ModulinoHubPort(_port, this);
+    }
+    int select(int port) {
+      Modulino._wire->beginTransmission(_address);
+      Modulino._wire->write(1 << port);
+      return Modulino._wire->endTransmission();
+    }
+    int clear() {
+      Modulino._wire->beginTransmission(_address);
+      Modulino._wire->write((uint8_t)0);
+      return Modulino._wire->endTransmission();
+    }
+
+    int address() {
+      return _address;
+    }
+  private:
+    int _address;
+};
+
 class Module : public Printable {
 public:
-  Module(uint8_t address = 0xFF, const char* name = "")
-    : address(address), name((char *)name) {}
+  Module(uint8_t address = 0xFF, const char* name = "", ModulinoHubPort* hubPort = nullptr)
+    : address(address), name((char *)name), hubPort(hubPort) {}
   virtual ~Module() {}  
   bool begin() {
     if (address >= 0x7F) {
@@ -88,6 +127,9 @@ public:
     if (address >= 0x7F) {
       return false;
     }
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     Modulino._wire->requestFrom(address, howmany + 1);
     auto start = millis();
     while ((Modulino._wire->available() == 0) && (millis() - start < 100)) {
@@ -103,17 +145,26 @@ public:
     while (Modulino._wire->available()) {
       Modulino._wire->read();
     }
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     return true;
   }
   bool write(uint8_t* buf, int howmany) {
     if (address >= 0x7F) {
       return false;
     }
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     Modulino._wire->beginTransmission(address);
     for (int i = 0; i < howmany; i++) {
       Modulino._wire->write(buf[i]);
     }
     Modulino._wire->endTransmission();
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     return true;
   }
   bool nonDefaultAddress() {
@@ -123,8 +174,14 @@ public:
     return p.print(name);
   }
   bool scan(uint8_t addr) {
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     Modulino._wire->beginTransmission(addr / 2);  // multply by 2 to match address in fw main.c
     auto ret = Modulino._wire->endTransmission();
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     if (ret == 0) {
       // could also ask for 1 byte and check if it's truely a modulino of that kind
       return true;
@@ -135,12 +192,15 @@ private:
   uint8_t address;
   uint8_t pinstrap_address;
   char* name;
+  ModulinoHubPort* hubPort = nullptr;
 };
 
 class ModulinoButtons : public Module {
 public:
-  ModulinoButtons(uint8_t address = 0xFF)
-    : Module(address, "BUTTONS") {}
+  ModulinoButtons(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "BUTTONS", hubPort) {}
+  ModulinoButtons(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "BUTTONS", hubPort) {}
   PinStatus isPressed(int index) {
     return last_status[index] ? HIGH : LOW;
   }
@@ -196,8 +256,10 @@ protected:
 
 class ModulinoJoystick : public Module {
 public:
-  ModulinoJoystick(uint8_t address = 0xFF)
-    : Module(address, "JOYSTICK") {}
+  ModulinoJoystick(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "JOYSTICK", hubPort) {}
+  ModulinoJoystick(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "JOYSTICK", hubPort) {}
   bool update() {
     uint8_t buf[3];
     auto res = read((uint8_t*)buf, 3);
@@ -248,8 +310,10 @@ protected:
 
 class ModulinoBuzzer : public Module {
 public:
-  ModulinoBuzzer(uint8_t address = 0xFF)
-    : Module(address, "BUZZER") {}
+  ModulinoBuzzer(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "BUZZER", hubPort) {}
+  ModulinoBuzzer(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "BUZZER", hubPort) {}
   void (tone)(size_t freq, size_t len_ms) {
     uint8_t buf[8];
     memcpy(&buf[0], &freq, 4);
@@ -275,8 +339,10 @@ protected:
 
 class ModulinoVibro : public Module {
 public:
-  ModulinoVibro(uint8_t address = 0xFF)
-    : Module(address, "VIBRO") {}
+  ModulinoVibro(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "VIBRO", hubPort) {}
+  ModulinoVibro(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "VIBRO", hubPort) {}
   void on(size_t len_ms, bool block, int power = MAXIMUM ) {
     uint8_t buf[12];
     uint32_t freq = 1000;
@@ -326,8 +392,12 @@ private:
 
 class ModulinoPixels : public Module {
 public:
-  ModulinoPixels(uint8_t address = 0xFF)
-    : Module(address, "LEDS") {
+  ModulinoPixels(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "LEDS", hubPort) {
+    memset((uint8_t*)data, 0xE0, NUMLEDS * 4);
+  }
+  ModulinoPixels(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "LEDS", hubPort) {
     memset((uint8_t*)data, 0xE0, NUMLEDS * 4);
   }
   void set(int idx, ModulinoColor rgb, uint8_t brightness = 25) {
@@ -366,9 +436,11 @@ protected:
 
 class ModulinoKnob : public Module {
 public:
-  ModulinoKnob(uint8_t address = 0xFF)
-    : Module(address, "ENCODER") {}
-  bool begin() {
+  ModulinoKnob(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "ENCODER", hubPort) {}
+  ModulinoKnob(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "ENCODER", hubPort) {}
+    bool begin() {
     auto ret = Module::begin();
     if (ret) {
       auto _val = get();
@@ -453,6 +525,8 @@ extern ModulinoColor WHITE;
 
 class ModulinoMovement : public Module {
 public:
+  ModulinoMovement(ModulinoHubPort* hubPort = nullptr)
+    : Module(0xFF, "MOVEMENT", hubPort) {}
   bool begin() {
     if (_imu == nullptr) {
       _imu = new LSM6DSOXClass(*((TwoWire*)getWire()), 0x6A);
@@ -505,6 +579,8 @@ private:
 
 class ModulinoThermo: public Module {
 public:
+  ModulinoThermo(ModulinoHubPort* hubPort = nullptr)
+  : Module(0xFF, "THERMO", hubPort) {}
   bool begin() {
     if (_sensor == nullptr) {
       _sensor = new HS300xClass(*((TwoWire*)getWire()));
@@ -535,6 +611,8 @@ private:
 
 class ModulinoPressure : public Module {
 public:
+  ModulinoPressure(ModulinoHubPort* hubPort = nullptr)
+    : Module(0xFF, "PRESSURE", hubPort) {}
   bool begin() {
     if (_barometer == nullptr) {
       _barometer = new LPS22HBClass(*((TwoWire*)getWire()));
@@ -569,6 +647,8 @@ private:
 
 class ModulinoLight : public Module {
 public:
+  ModulinoLight(ModulinoHubPort* hubPort = nullptr)
+    : Module(0xFF, "LIGHT", hubPort) {}
   bool begin() {
     if (_light == nullptr) {
       _light = new LTR381RGBClass(*((TwoWire*)getWire()), 0x53);
@@ -723,6 +803,8 @@ private:
 
 class ModulinoDistance : public Module {
 public:
+  ModulinoDistance(ModulinoHubPort* hubPort = nullptr)
+    : Module(0xFF, "DISTANCE", hubPort) {}
   bool begin() {
     // try scanning for 0x29 since the library contains a while(true) on begin()
     getWire()->beginTransmission(0x29);
@@ -787,8 +869,10 @@ private:
 
 class ModulinoOptoRelay : public Module {
 public:
-  ModulinoOptoRelay(uint8_t address = 0xFF)
-    : Module(address, "OPTO_RELAY") {}
+  ModulinoOptoRelay(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "OPTO_RELAY", hubPort) {}
+  ModulinoOptoRelay(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "OPTO_RELAY", hubPort) {}
   bool update() {
     uint8_t buf[3];
     auto res = read((uint8_t*)buf, 3);
@@ -834,8 +918,10 @@ protected:
 
 class ModulinoLatchRelay : public Module {
 public:
-  ModulinoLatchRelay(uint8_t address = 0xFF)
-    : Module(address, "REL") {}
+  ModulinoLatchRelay(uint8_t address = 0xFF, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "LATCH_RELAY", hubPort) {}
+  ModulinoLatchRelay(ModulinoHubPort* hubPort, uint8_t address = 0xFF)
+    : Module(address, "LATCH_RELAY", hubPort) {}
   bool update() {
     uint8_t buf[3];
     auto res = read((uint8_t*)buf, 3);
