@@ -192,6 +192,7 @@ private:
   uint8_t address;
   uint8_t pinstrap_address;
   char* name;
+protected:
   ModulinoHubPort* hubPort = nullptr;
 };
 
@@ -528,11 +529,17 @@ public:
   ModulinoMovement(ModulinoHubPort* hubPort = nullptr)
     : Module(0xFF, "MOVEMENT", hubPort) {}
   bool begin() {
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     if (_imu == nullptr) {
       _imu = new LSM6DSOXClass(*((TwoWire*)getWire()), 0x6A);
     }
     initialized = _imu->begin();
     __increaseI2CPriority();
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     return initialized != 0;
   }
   operator bool() {
@@ -540,15 +547,28 @@ public:
   }
   int update() {
     if (initialized) {
+      if (hubPort != nullptr) {
+        hubPort->select();
+      }
       int accel = _imu->readAcceleration(x, y, z);
       int gyro = _imu->readGyroscope(roll, pitch, yaw);
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
       return accel && gyro;
     }
     return 0;
   }
   int available() {
     if (initialized) {
-      return _imu->accelerationAvailable() && _imu->gyroscopeAvailable();
+      if (hubPort != nullptr) {
+        hubPort->select();
+      }
+      auto ret = _imu->accelerationAvailable() && _imu->gyroscopeAvailable();
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
+      return ret;
     }
     return 0;
   }
@@ -582,11 +602,17 @@ public:
   ModulinoThermo(ModulinoHubPort* hubPort = nullptr)
   : Module(0xFF, "THERMO", hubPort) {}
   bool begin() {
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     if (_sensor == nullptr) {
       _sensor = new HS300xClass(*((TwoWire*)getWire()));
     }
     initialized = _sensor->begin();
     __increaseI2CPriority();
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     return initialized;
   }
   operator bool() {
@@ -594,13 +620,27 @@ public:
   }
   float getHumidity() {
     if (initialized) {
-      return _sensor->readHumidity();
+      if (hubPort != nullptr) {
+        hubPort->select();
+      }
+      auto ret = _sensor->readHumidity();
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
+      return ret;
     }
     return 0;
   }
   float getTemperature() {
     if (initialized) {
-      return _sensor->readTemperature();
+      if (hubPort != nullptr) {
+        hubPort->select();
+      }
+      auto ret = _sensor->readTemperature();
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
+      return ret;
     }
     return 0;
   }
@@ -614,6 +654,9 @@ public:
   ModulinoPressure(ModulinoHubPort* hubPort = nullptr)
     : Module(0xFF, "PRESSURE", hubPort) {}
   bool begin() {
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     if (_barometer == nullptr) {
       _barometer = new LPS22HBClass(*((TwoWire*)getWire()));
     }
@@ -623,6 +666,9 @@ public:
       getWire()->begin();
     }
     __increaseI2CPriority();
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     return initialized != 0;
   }
   operator bool() {
@@ -630,13 +676,27 @@ public:
   }
   float getPressure() {
     if (initialized) {
-      return _barometer->readPressure();
+      if (hubPort != nullptr) {
+        hubPort->select();
+      }
+      auto ret = _barometer->readPressure();
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
+      return ret;
     }
     return 0;
   }
   float getTemperature() {
     if (initialized) {
-      return _barometer->readTemperature();
+      if (hubPort != nullptr) {
+        hubPort->select();
+      }
+      auto ret = _barometer->readTemperature();
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
+      return ret;
     }
     return 0;
   }
@@ -650,11 +710,17 @@ public:
   ModulinoLight(ModulinoHubPort* hubPort = nullptr)
     : Module(0xFF, "LIGHT", hubPort) {}
   bool begin() {
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     if (_light == nullptr) {
       _light = new LTR381RGBClass(*((TwoWire*)getWire()), 0x53);
     }
     initialized = _light->begin();
     __increaseI2CPriority();
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     return initialized != 0;
   }
   operator bool() {
@@ -662,7 +728,13 @@ public:
   }
   bool update() {
     if (initialized) {
-      return _light->readAllSensors(r, g, b, rawlux, lux, ir);
+      if (hubPort != nullptr) {
+        hubPort->select();
+      }
+      auto ret = _light->readAllSensors(r, g, b, rawlux, lux, ir);
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
     }
     return 0;
   }
@@ -806,9 +878,16 @@ public:
   ModulinoDistance(ModulinoHubPort* hubPort = nullptr)
     : Module(0xFF, "DISTANCE", hubPort) {}
   bool begin() {
+
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     // try scanning for 0x29 since the library contains a while(true) on begin()
     getWire()->beginTransmission(0x29);
     if (getWire()->endTransmission() != 0) {
+      if (hubPort != nullptr) {
+        hubPort->clear();
+      }
       return false;
     }
     tof_sensor = new VL53L4CD((TwoWire*)getWire(), -1);
@@ -823,6 +902,9 @@ public:
       } else {
         delete tof_sensor_alt;
         tof_sensor_alt = nullptr;
+        if (hubPort != nullptr) {
+          hubPort->clear();
+        }
         return false;
       }
     } else {
@@ -832,6 +914,9 @@ public:
     __increaseI2CPriority();
     api->setRangeTiming(20, 0);
     api->startRanging();
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
     return true;
   }
   operator bool() {
@@ -841,12 +926,18 @@ public:
     if (api == nullptr) {
       return false;
     }
-    
+
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
     uint8_t NewDataReady = 0;
     api->checkForDataReady(&NewDataReady);
     if (NewDataReady) {
       api->clearInterrupt();
       api->getResult(&results);
+    }
+    if (hubPort != nullptr) {
+      hubPort->clear();
     }
     if (results.range_status == 0) {
       internal = results.distance_mm;
