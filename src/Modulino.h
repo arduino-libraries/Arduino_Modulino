@@ -4,6 +4,11 @@
 #ifndef ARDUINO_LIBRARIES_MODULINO_H
 #define ARDUINO_LIBRARIES_MODULINO_H
 
+#if defined(ESP32) && defined(BOARD_HAS_PIN_REMAP) && defined(tone)
+  #error "The current configuration is unsupported, switch Pin Numbering to "By GPIO number" or #undef tone and #undef noTone in the beginning of your sketch."
+  #error "Learn more at: https://support.arduino.cc/hc/en-us/articles/10483225565980-Select-pin-numbering-for-Nano-ESP32-in-Arduino-IDE"
+#endif
+
 #include "Wire.h"
 #include <vl53l4cd_class.h>  // from stm32duino
 #include <vl53l4ed_class.h>  // from stm32duino
@@ -21,7 +26,7 @@ void __increaseI2CPriority();
 
 class ModulinoClass {
 public:
-#ifdef ARDUINO_UNOR4_WIFI
+#if defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_NANO_R4)
   void begin(HardwareI2C& wire = Wire1) {
 #else
   void begin(HardwareI2C& wire = Wire) {
