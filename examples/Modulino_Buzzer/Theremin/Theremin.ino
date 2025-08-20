@@ -1,4 +1,4 @@
-#include "Modulino.h"
+#include <Arduino_Modulino.h>
 
 ModulinoBuzzer buzzer;
 ModulinoDistance distance;

@@ -11,7 +11,7 @@
 #include "Arduino_LED_Matrix.h"
 #endif
 
-#include "Modulino.h"
+#include <Arduino_Modulino.h>
 #include "Wire.h"
 #include "fw.h"
 
