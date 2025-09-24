@@ -108,7 +108,7 @@ class Module : public Printable {
 public:
   Module(uint8_t address = 0xFF, const char* name = "", ModulinoHubPort* hubPort = nullptr)
     : address(address), name((char *)name), hubPort(hubPort) {}
-  virtual ~Module() {}  
+  virtual ~Module() {}
   bool begin() {
     if (address >= 0x7F) {
       address = discover() / 2;  // divide by 2 to match address in fw main.c
@@ -267,7 +267,7 @@ public:
     auto x = buf[0];
     auto y =  buf[1];
     map_value(x, y);
-    auto ret = res && (x != last_status[0] || buf[1] != y || buf[2] != last_status[2]);
+    auto ret = res && (x != last_status[0] || y != last_status[1] || buf[2] != last_status[2]);
     if (!ret) {
       return false;
     }
@@ -841,7 +841,7 @@ public:
     if (api == nullptr) {
       return false;
     }
-    
+
     uint8_t NewDataReady = 0;
     api->checkForDataReady(&NewDataReady);
     if (NewDataReady) {
