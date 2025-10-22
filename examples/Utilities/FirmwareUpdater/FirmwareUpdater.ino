@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#if defined(ARDUINO_UNOWIFIR4) 
+#if defined(ARDUINO_UNOWIFIR4)
 #include "ArduinoGraphics.h"
 #include "Arduino_LED_Matrix.h"
 #endif
@@ -14,30 +14,58 @@
 #include <Arduino_Modulino.h>
 #include "Wire.h"
 #include "fw.h"
+#include "fw_ledmatrix.h"
 
 // https://www.st.com/resource/en/application_note/an4221-i2c-protocol-used-in-the-stm32-bootloader-stmicroelectronics.pdf
 
 bool flash(const uint8_t* binary, size_t lenght, bool verbose = true);
+Module modulino;
+
+// Change this to true if programming a blank Modulino LED Matrix
+bool force_led_matrix = false;
 
 void setup() {
   Serial.begin(115200);
-  Wire1.begin();
-  Wire1.setClock(400000);
+  Modulino.begin();
+  modulino.getWire()->setClock(400000);
 
-  // Send reset to the module; remember, connect only ONE module at a time
-  if (sendReset() != 0) {
-    Serial.println("Send reset failed");
+  modulino.getWire()->beginTransmission(0x64);
+  auto is_boot_mode = (modulino.getWire()->endTransmission() == 0);
+
+  if (is_boot_mode) {
+    Serial.println("boot mode");
   }
 
-  auto result = flash(node_base_bin, node_base_bin_len);
-  
-  #if defined(ARDUINO_UNOWIFIR4)
+  bool is_led_matrix = false;
+
+  // Send reset to the module; remember, connect only ONE module at a time
+  if (!is_boot_mode) {
+    modulino.getWire()->beginTransmission(0x39);
+    is_led_matrix = (modulino.getWire()->endTransmission() == 0);
+
+    if (is_led_matrix) {
+      Serial.println("led matrix mode");
+    }
+
+    if (sendReset() != 0) {
+      Serial.println("Send reset failed");
+    }
+  }
+
+  bool result;
+  if (is_led_matrix || force_led_matrix) {
+    result = flash(matrix_node_base_bin, matrix_node_base_bin_len);
+  } else {
+    result = flash(node_base_bin, node_base_bin_len);
+  }
+
+#if defined(ARDUINO_UNOWIFIR4)
   if (result) {
     matrixInitAndDraw("PASS");
   } else {
     matrixInitAndDraw("FAIL");
   }
-  #endif
+#endif
 }
 
 void loop() {
@@ -45,25 +73,26 @@ void loop() {
 }
 
 class SerialVerbose {
-  public:
-    SerialVerbose(bool verbose) : _verbose(verbose) {}
-    int print(String s) {
-      if (_verbose) {
-        Serial.print(s);
-      }
+public:
+  SerialVerbose(bool verbose)
+    : _verbose(verbose) {}
+  int print(String s) {
+    if (_verbose) {
+      Serial.print(s);
     }
-    int println(String s) {
-      if (_verbose) {
-        Serial.println(s);
-      }
+  }
+  int println(String s) {
+    if (_verbose) {
+      Serial.println(s);
     }
-    int println(int num, int base) {
-      if (_verbose) {
-        Serial.println(num, base);
-      }
+  }
+  int println(int num, int base) {
+    if (_verbose) {
+      Serial.println(num, base);
     }
-  private:
-    bool _verbose;
+  }
+private:
+  bool _verbose;
 };
 
 #if defined(ARDUINO_UNOWIFIR4)
@@ -120,7 +149,8 @@ bool flash(const uint8_t* binary, size_t lenght, bool verbose) {
     SerialDebug.println(resp_buf[i], HEX);
   }
 
-  for (int i = 0; i < lenght; i += 128) {
+  int lenght_mod128 = ((lenght + 128) / 128) * 128;
+  for (int i = lenght_mod128; i >= 0; i -= 128) {
     SerialDebug.print("WRITE_PAGE ");
     SerialDebug.println(i, HEX);
     uint8_t write_buf[5] = { 8, 0, i / 256, i % 256 };
@@ -131,7 +161,7 @@ bool flash(const uint8_t* binary, size_t lenght, bool verbose) {
     delay(10);
   }
   SerialDebug.println("GO");
-  uint8_t jump_buf[5] = { 0x8, 0x00,  0x00,  0x00, 0x8 };
+  uint8_t jump_buf[5] = { 0x8, 0x00, 0x00, 0x00, 0x8 };
   resp = command(0x21, jump_buf, 5, nullptr, 0, verbose);
   return true;
 }
@@ -144,32 +174,32 @@ int command_write_page(uint8_t opcode, uint8_t* buf_cmd, size_t len_cmd, const u
   uint8_t cmd[2];
   cmd[0] = opcode;
   cmd[1] = 0xFF ^ opcode;
-  Wire1.beginTransmission(100);
-  Wire1.write(cmd, 2);
+  modulino.getWire()->beginTransmission(100);
+  modulino.getWire()->write(cmd, 2);
   if (len_cmd > 0) {
     buf_cmd[len_cmd - 1] = 0;
     for (int i = 0; i < len_cmd - 1; i++) {
       buf_cmd[len_cmd - 1] ^= buf_cmd[i];
     }
-    Wire1.endTransmission(true);
-    Wire1.requestFrom(100, 1);
-    auto c = Wire1.read();
+    modulino.getWire()->endTransmission(true);
+    modulino.getWire()->requestFrom(100, 1);
+    auto c = modulino.getWire()->read();
     if (c != 0x79) {
       SerialDebug.print("error first ack: ");
       SerialDebug.println(c, HEX);
       return -1;
     }
-    Wire1.beginTransmission(100);
-    Wire1.write(buf_cmd, len_cmd);
+    modulino.getWire()->beginTransmission(100);
+    modulino.getWire()->write(buf_cmd, len_cmd);
   }
-  Wire1.endTransmission(true);
-  Wire1.requestFrom(100, 1);
-  auto c = Wire1.read();
+  modulino.getWire()->endTransmission(true);
+  modulino.getWire()->requestFrom(100, 1);
+  auto c = modulino.getWire()->read();
   if (c != 0x79) {
     while (c == 0x76) {
       delay(10);
-      Wire1.requestFrom(100, 1);
-      c = Wire1.read();
+      modulino.getWire()->requestFrom(100, 1);
+      c = modulino.getWire()->read();
     }
     if (c != 0x79) {
       SerialDebug.print("error second ack: ");
@@ -182,16 +212,16 @@ int command_write_page(uint8_t opcode, uint8_t* buf_cmd, size_t len_cmd, const u
   for (int i = 0; i < len_fw + 1; i++) {
     tmpbuf[len_fw + 1] ^= tmpbuf[i];
   }
-  Wire1.beginTransmission(100);
-  Wire1.write(tmpbuf, len_fw + 2);
-  Wire1.endTransmission(true);
-  Wire1.requestFrom(100, 1);
-  c = Wire1.read();
+  modulino.getWire()->beginTransmission(100);
+  modulino.getWire()->write(tmpbuf, len_fw + 2);
+  modulino.getWire()->endTransmission(true);
+  modulino.getWire()->requestFrom(100, 1);
+  c = modulino.getWire()->read();
   if (c != 0x79) {
     while (c == 0x76) {
       delay(10);
-      Wire1.requestFrom(100, 1);
-      c = Wire1.read();
+      modulino.getWire()->requestFrom(100, 1);
+      c = modulino.getWire()->read();
     }
     if (c != 0x79) {
       SerialDebug.print("error: ");
@@ -210,28 +240,28 @@ int command(uint8_t opcode, uint8_t* buf_cmd, size_t len_cmd, uint8_t* buf_resp,
   uint8_t cmd[2];
   cmd[0] = opcode;
   cmd[1] = 0xFF ^ opcode;
-  Wire1.beginTransmission(100);
-  Wire1.write(cmd, 2);
+  modulino.getWire()->beginTransmission(100);
+  modulino.getWire()->write(cmd, 2);
   if (len_cmd > 0) {
-    Wire1.endTransmission(true);
-    Wire1.requestFrom(100, 1);
-    auto c = Wire1.read();
+    modulino.getWire()->endTransmission(true);
+    modulino.getWire()->requestFrom(100, 1);
+    auto c = modulino.getWire()->read();
     if (c != 0x79) {
       Serial.print("error first ack: ");
       Serial.println(c, HEX);
       return -1;
     }
-    Wire1.beginTransmission(100);
-    Wire1.write(buf_cmd, len_cmd);
+    modulino.getWire()->beginTransmission(100);
+    modulino.getWire()->write(buf_cmd, len_cmd);
   }
-  Wire1.endTransmission(true);
-  Wire1.requestFrom(100, 1);
-  auto c = Wire1.read();
+  modulino.getWire()->endTransmission(true);
+  modulino.getWire()->requestFrom(100, 1);
+  auto c = modulino.getWire()->read();
   if (c != 0x79) {
     while (c == 0x76) {
       delay(100);
-      Wire1.requestFrom(100, 1);
-      c = Wire1.read();
+      modulino.getWire()->requestFrom(100, 1);
+      c = modulino.getWire()->read();
       SerialDebug.println("retry");
     }
     if (c != 0x79) {
@@ -244,14 +274,14 @@ int command(uint8_t opcode, uint8_t* buf_cmd, size_t len_cmd, uint8_t* buf_resp,
   if (len_resp == 0) {
     goto final_ack;
   }
-  Wire1.requestFrom(100, len_resp);
-  howmany = Wire1.read();
+  modulino.getWire()->requestFrom(100, len_resp);
+  howmany = modulino.getWire()->read();
   for (int j = 0; j < howmany + 1; j++) {
-    buf_resp[j] = Wire1.read();
+    buf_resp[j] = modulino.getWire()->read();
   }
 
-  Wire1.requestFrom(100, 1);
-  c = Wire1.read();
+  modulino.getWire()->requestFrom(100, 1);
+  c = modulino.getWire()->read();
   if (c != 0x79) {
     SerialDebug.print("error: ");
     SerialDebug.println(c, HEX);
@@ -265,12 +295,12 @@ int sendReset() {
   uint8_t buf[3] = { 'D', 'I', 'E' };
   int ret;
   for (int i = 8; i < 0x78; i++) {
-    Wire1.beginTransmission(i);
-    ret = Wire1.endTransmission();
+    modulino.getWire()->beginTransmission(i);
+    ret = modulino.getWire()->endTransmission();
     if (ret != 2) {
-      Wire1.beginTransmission(i);
-      Wire1.write(buf, 40);
-      ret = Wire1.endTransmission();
+      modulino.getWire()->beginTransmission(i);
+      modulino.getWire()->write(buf, 40);
+      ret = modulino.getWire()->endTransmission();
       return ret;
     }
   }
