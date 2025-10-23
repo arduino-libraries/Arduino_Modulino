@@ -294,7 +294,7 @@ final_ack:
 int sendReset() {
   uint8_t buf[3] = { 'D', 'I', 'E' };
   int ret;
-  for (int i = 8; i < 0x78; i++) {
+  for (int i = 0; i < 0x78; i++) {
     modulino.getWire()->beginTransmission(i);
     ret = modulino.getWire()->endTransmission();
     if (ret != 2) {
