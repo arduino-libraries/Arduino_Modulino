@@ -1,6 +1,6 @@
 #include <Modulino.h>
 
-ModulinoRelay relay;
+ModulinoOptoRelay relay;
 
 void setup() {
   Serial.begin(115200);
