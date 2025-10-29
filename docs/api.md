@@ -149,7 +149,7 @@ Represents a Modulino Thermo module.
   Returns the humidity reading.
 
 - **`float getTemperature()`**  
-  Returns the temperature reading.
+  Returns the temperature reading in Celsius.
 
 ---
 
