@@ -146,7 +146,7 @@ Represents a Modulino Thermo module.
 #### Methods
 
 - **`float getHumidity()`**  
-  Returns the humidity reading.
+  Returns the relative humidity reading as a percentage in the range 0 to 100.
 
 - **`float getTemperature()`**  
   Returns the temperature reading in Celsius.
