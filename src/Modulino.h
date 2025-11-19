@@ -749,7 +749,7 @@ public:
     if (l > 90.0) {
         return "WHITE";
     }
-    if (l < 10.0) {
+    if (l <= 0.20) {
         return "BLACK";
     }
     if (s < 10.0) {
