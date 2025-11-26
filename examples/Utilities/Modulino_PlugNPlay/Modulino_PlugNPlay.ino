@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#include "Modulino.h"
+#include <Arduino_Modulino.h>
 
 // Create objects for all Modulino modules
 ModulinoButtons buttons;

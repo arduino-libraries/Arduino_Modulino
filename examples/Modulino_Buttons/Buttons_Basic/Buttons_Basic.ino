@@ -1,12 +1,12 @@
 /*
  * Modulino Buttons - Basic
  *
- * This example code is in the public domain. 
+ * This example code is in the public domain.
  * Copyright (c) 2025 Arduino
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#include <Modulino.h>
+#include <Arduino_Modulino.h>
 
 // Create a ModulinoButtons object
 ModulinoButtons buttons;

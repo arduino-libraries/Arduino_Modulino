@@ -25,7 +25,7 @@ The **Modulino** library supports the following hardware modules:
 To initialize the **Modulino** library, include the header file and call the `begin()` method. This will set up the I2C communication and prepare the library for use with the modules.
 
 ```cpp
-#include <Modulino.h>
+#include <Arduino_Modulino.h>
 Modulino.begin();  // Initialize the Modulino library
 ```
 
@@ -124,7 +124,7 @@ Here’s an example of how to use some Modulino in a program:
 // This sketch demonstrates how to use the Modulino library to control buttons, LEDs, and a buzzer.
 // It listens for a button press (Button A), turns on the LED 0, and plays a sound through the buzzer when pressed.
 
-#include <Modulino.h>
+#include <Arduino_Modulino.h>
 
 ModulinoButtons buttons;  // Declare a Buttons Modulino
 ModulinoPixels leds;      // Declare a Pixels Modulino

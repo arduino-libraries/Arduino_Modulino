@@ -26,7 +26,7 @@ void __increaseI2CPriority();
 
 class ModulinoClass {
 public:
-#ifdef ARDUINO_UNOR4_WIFI
+#if defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_NANO_R4) || defined(ARDUINO_UNO_Q)
   void begin(HardwareI2C& wire = Wire1) {
 #else
   void begin(HardwareI2C& wire = Wire) {
