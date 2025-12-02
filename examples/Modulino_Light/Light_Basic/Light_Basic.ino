@@ -25,7 +25,7 @@ void loop() {
   lux = light.getAL();
   ir = light.getIR();
 
-  Serial.print("light data: ");
+  Serial.print("\tlight data: ");
   Serial.print("\tRed:\t");
   Serial.print(r);
   Serial.print("\tGreen:\t");
