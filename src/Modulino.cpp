@@ -7,10 +7,13 @@
 // Build before other objects to fix the Wire object
 ModulinoClass Modulino __attribute__ ((init_priority (101)));
 
+ModulinoColor BLACK(0, 0, 0);
 ModulinoColor RED(255, 0, 0);
 ModulinoColor BLUE(0, 0, 255);
 ModulinoColor GREEN(0, 255, 0);
+ModulinoColor YELLOW(255, 255, 0);
 ModulinoColor VIOLET(255, 0, 255);
+ModulinoColor CYAN(0, 255, 255);
 ModulinoColor WHITE(255, 255, 255);
 
 #if __has_include("Arduino_LED_Matrix.h") && defined(ARDUINO_UNOR4_WIFI)
@@ -27,3 +30,10 @@ void __increaseI2CPriority() {
 #else
 void __increaseI2CPriority() {}
 #endif
+
+int ModulinoHubPort::select() {
+    return _hub->select(_port);
+}
+int ModulinoHubPort::clear() {
+    return _hub->clear();
+}
