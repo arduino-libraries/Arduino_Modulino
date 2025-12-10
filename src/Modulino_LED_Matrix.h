@@ -23,6 +23,8 @@
 #define DEFAULT_WIRE Wire
 #endif
 
+#define DEFAULT_ADDRESS 0x39
+
 class ModulinoLEDMatrix
 #ifdef MATRIX_WITH_ARDUINOGRAPHICS
     : public ArduinoGraphics
@@ -30,13 +32,24 @@ class ModulinoLEDMatrix
      {
 
 public:
-    ModulinoLEDMatrix(HardwareI2C& wire = DEFAULT_WIRE)
+    ModulinoLEDMatrix(uint8_t address = DEFAULT_ADDRESS, HardwareI2C& wire = DEFAULT_WIRE)
     #ifdef MATRIX_WITH_ARDUINOGRAPHICS
         : ArduinoGraphics(canvasWidth, canvasHeight)
     #endif
     {
+        _address = address;
         _wire = &wire;
     }
+
+    ModulinoLEDMatrix(HardwareI2C& wire, uint8_t address = DEFAULT_ADDRESS)
+    #ifdef MATRIX_WITH_ARDUINOGRAPHICS
+        : ArduinoGraphics(canvasWidth, canvasHeight)
+    #endif
+    {
+        _address = address;
+        _wire = &wire;
+    }
+
     // TODO: find a better name
     // autoscroll will be slower than calling next() at precise times
     void autoscroll(uint32_t interval_ms) {
@@ -63,7 +76,7 @@ public:
             }
             _sequenceDone = true;
         }
-        _wire->beginTransmission(0x39);
+        _wire->beginTransmission(_address);
         _wire->write((uint8_t*)frame, sizeof(frame));
         _wire->endTransmission();
     }
@@ -219,4 +232,5 @@ private:
     bool _sequenceDone = false;
     voidFuncPtr _callBack = nullptr;
     HardwareI2C* _wire;
+    uint8_t _address = DEFAULT_ADDRESS;
 };
