@@ -17,6 +17,7 @@
 #include <Arduino_HS300x.h>
 #include "Arduino_LTR381RGB.h"
 #include "Arduino.h"
+#include "Arduino_ST7315.h"
 //#include <SE05X.h>  // need to provide a way to change Wire object
 
 #ifndef ARDUINO_API_VERSION
@@ -1060,6 +1061,39 @@ private:
   bool last_status[3];
 protected:
   uint8_t match[1] = { 0x04 };  // same as fw main.c
+};
+
+class ModulinoDisplay : public ArduinoGraphics, public Module  {
+public:
+    ModulinoDisplay(ModulinoHubPort* hubPort = nullptr)
+        : ArduinoGraphics(128, 64),
+          Module(0xFF, "DISPLAY", hubPort) {}
+
+    int begin() { // override of ArduinoGraphics::begin (we can't use Module::begin here because conflict of return type)
+      if (hubPort != nullptr) hubPort->select();
+
+      _display = new Arduino_ST7315_Driver(128, 64, (TwoWire*)getWire(), 0x3D);
+      initialized = _display->begin();
+      __increaseI2CPriority();
+
+      if (hubPort != nullptr) hubPort->clear();
+      return initialized;
+    }
+
+    operator bool() {
+      return (initialized != 0);
+    }
+
+    void beginDraw() override {}
+    void endDraw() override { if(initialized) _display->update(); }
+
+    void set(int x, int y, uint8_t r, uint8_t g, uint8_t b) override {
+        bool on = (r | g | b) > 127; // RGB threshold to decide pixel on/off (at least one color > 50%/127)
+        if(initialized) _display->set(x, y, on);
+    }
+private:
+    Arduino_ST7315_Driver* _display = nullptr;
+    int initialized = 0;
 };
 
 #endif
