@@ -62,9 +62,13 @@ public:
     }
     void next() {
         uint32_t frame[3];
-        frame[0] = reverse(*(_frames+(_currentFrame*4)+0));
-        frame[1] = reverse(*(_frames+(_currentFrame*4)+1));
-        frame[2] = reverse(*(_frames+(_currentFrame*4)+2));
+        frame[0] = *(_frames+(_currentFrame*4)+0);
+        frame[1] = *(_frames+(_currentFrame*4)+1);
+        frame[2] = *(_frames+(_currentFrame*4)+2);
+
+        uint8_t data[12];
+        prepareFrame(frame, data);
+
         _interval = *(_frames+(_currentFrame*4)+3);
         _currentFrame = (_currentFrame + 1) % _framesCount;
         if(_currentFrame == 0){
@@ -77,7 +81,7 @@ public:
             _sequenceDone = true;
         }
         _wire->beginTransmission(_address);
-        _wire->write((uint8_t*)frame, sizeof(frame));
+        _wire->write(data, 12);
         _wire->endTransmission();
     }
     void loadFrame(const uint32_t buffer[3]){
@@ -212,14 +216,19 @@ public:
 
 private:
 
-    static uint32_t reverse(uint32_t x)
-    {
-        x = ((x >> 1) & 0x55555555u) | ((x & 0x55555555u) << 1);
-        x = ((x >> 2) & 0x33333333u) | ((x & 0x33333333u) << 2);
-        x = ((x >> 4) & 0x0f0f0f0fu) | ((x & 0x0f0f0f0fu) << 4);
-        x = ((x >> 8) & 0x00ff00ffu) | ((x & 0x00ff00ffu) << 8);
-        x = ((x >> 16) & 0xffffu) | ((x & 0xffffu) << 16);
-        return x;
+    void prepareFrame(uint32_t* frame, uint8_t* data) {
+        memset(data, 0, 12);
+        for (int x = 0; x < 12; x++) {
+            for (int y = 0; y < 8; y++) {
+                int k = y * 12 + x;
+                int w_idx = k / 32;
+                int b_idx = 31 - (k % 32);
+
+                if ((frame[w_idx] >> b_idx) & 1) {
+                    data[x] |= (1 << y);
+                }
+            }
+        }
     }
 
     int _currentFrame = 0;
