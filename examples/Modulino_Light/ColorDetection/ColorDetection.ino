@@ -113,7 +113,7 @@ void readColors() {
     knob_blue.set(blue);
   } else if (blue < 0) {
     blue = 0;
-    knob_red.set(blue);  // Note: This appears to be a bug in original code (should be knob_blue)
+    knob_blue.set(blue);
   }
 }
 

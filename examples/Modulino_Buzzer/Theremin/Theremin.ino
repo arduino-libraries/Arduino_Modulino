@@ -59,9 +59,9 @@ void loop() {
   // Get current encoder position to select which note to play
   noteIndex = encoder.get();
 
-  // Use modulo to keep noteIndex within valid range (0-10)
+  // Use modulo to keep noteIndex within valid range (0-11)
   // This allows the encoder to wrap around through all 12 notes
-  noteIndex = noteIndex % 11;
+  noteIndex = noteIndex % 12;
   // Ensure noteIndex doesn't go negative
   if (noteIndex < 0){
       noteIndex = 0;
