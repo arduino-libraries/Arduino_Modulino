@@ -1,5 +1,40 @@
 /*
  * Modulino - Address Changer
+ * 
+ * This utility allows you to change the I2C addresses of Modulino modules.
+ * This is essential when you want to use multiple modules of the same type
+ * on the same I2C bus (e.g., multiple encoders or buttons).
+ * 
+ * By default, each Modulino type has a fixed default I2C address. If you connect
+ * two modules of the same type, they will conflict. This tool lets you change
+ * the address to avoid conflicts.
+ * 
+ * How to use:
+ * 1. Connect the Arduino and open the Serial Monitor (115200 baud)
+ * 2. The tool will show all detected Modulino devices with their addresses
+ * 3. Enter commands in this format: "current_address new_address"
+ *    Examples:
+ *    - "0x3E 0x3F" - Changes device at 0x3E to address 0x3F
+ *    - "0x3E 0" - Resets device at 0x3E to its default address
+ *    - "0 0" - Resets ALL devices to their default addresses (broadcast)
+ * 
+ * IMPORTANT NOTES:
+ * - Valid I2C addresses range from 0x08 to 0x77
+ * - Some devices have fixed addresses and cannot be changed (Distance, Thermo, Movement)
+ * - The new address is stored in the module's memory permanently
+ * - After changing addresses, power cycle the modules to ensure changes take effect
+ * 
+ * Default addresses by module type:
+ * - Buzzer: 0x1E (pinstrap 0x3C)
+ * - Joystick: 0x2C (pinstrap 0x58)
+ * - Buttons: 0x3E (pinstrap 0x7C)
+ * - Opto Relay: 0x14 (pinstrap 0x28)
+ * - Encoder: 0x3B or 0x3A (pinstrap 0x76 or 0x74)
+ * - Smartleds: 0x36 (pinstrap 0x6C)
+ * - Vibro: 0x38 (pinstrap 0x70)
+ * - Distance: 0x29 (fixed, cannot change)
+ * - Thermo: 0x44 (fixed, cannot change)
+ * - Movement: 0x6A or 0x6B (fixed, cannot change)
  *
  * This example code is in the public domain. 
  * Copyright (c) 2025 Arduino
@@ -8,50 +43,67 @@
 
 #include "Wire.h"
 
+// Structure to store information about detected Modulino devices
 struct DetectedModulino {
-  uint8_t addr;
-  String modulinoType;
-  String pinstrap;
-  String defaultAddr;
+  uint8_t addr;           // Current I2C address
+  String modulinoType;    // Type of module (e.g., "Buzzer", "Encoder")
+  String pinstrap;        // Pinstrap value (identifies device type)
+  String defaultAddr;     // Default address for this module type
 };
 
 #define MAX_DEVICES 16
-DetectedModulino rows[MAX_DEVICES];
-int numRows = 0;
+DetectedModulino rows[MAX_DEVICES];  // Array to store detected devices
+int numRows = 0;  // Number of devices currently detected
 
 
 void setup() {
+  // Initialize I2C communication on Wire1 interface
   Wire1.begin();
+  // Initialize serial communication at 115200 baud
   Serial.begin(115200);
 
+  // Wait for serial port to initialize
   delay(600);
+  // Scan I2C bus and display all detected Modulino devices
   discoverDevices();
 }
 
 bool waitingInput = false;
+
 void loop() {
+  // If no devices detected, nothing to do
   if (numRows == 0) return;
+  // If waiting for input and nothing available, keep waiting
   if (Serial.available() == 0 && waitingInput) return;
 
+  // Process user input when available
   if (Serial.available() > 0) {
-    String hex1 = Serial.readStringUntil(' ');   // Read until space (or other delimiter)
-    String hex2 = Serial.readStringUntil('\n');  // Read until newline
-    Serial.println("> " + hex1 + " " + hex2);    // Print what the user inserted.
+    // Read two hexadecimal values separated by space
+    String hex1 = Serial.readStringUntil(' ');   // Current address
+    String hex2 = Serial.readStringUntil('\n');  // New address
+    // Echo back what user entered
+    Serial.println("> " + hex1 + " " + hex2);
 
-    int num1 = parseHex(hex1);  // Parse the first hex number
-    int num2 = parseHex(hex2);  // Parse the second hex number
+    // Parse the hexadecimal strings to integer values
+    int num1 = parseHex(hex1);  // Current address
+    int num2 = parseHex(hex2);  // New address
+    
+    // Validate input
     if (num1 == -1 || num2 == -1) {
       Serial.println("Error: Incomplete or invalid input. Please enter two hexadecimal numbers");
       return;
     }
 
+    // Attempt to update the I2C address
     bool success = updateI2cAddress(num1, num2);
-    if (!success) return;  // If the update failed, skip discovery and messages, and wait for input again.
+    if (!success) return;  // If update failed, wait for new input
 
+    // Re-scan devices to show updated addresses
     discoverDevices();
     waitingInput = false;
   }
 
+  // Display instructions for the user
   Serial.println("Enter the current address, space, and new address (ex. \"0x20 0x30\" or \"20 2A\"):");
   Serial.println("  - Enter \"<addr> 0\" to reset the device at <addr> to its default address.");
   Serial.println("  - Enter \"0 0\" to reset all devices to the default address.");
