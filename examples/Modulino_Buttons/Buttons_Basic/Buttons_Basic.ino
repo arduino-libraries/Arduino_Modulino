@@ -57,8 +57,8 @@ void loop() {
   // Returns true when any button state changes (pressed or released)
   if (buttons.update()) {
     // You can use either index (0=A, 1=B, 2=C) or letter ('A', 'B', 'C') to check buttons
-    // Below we use the letter-based method for better readability
-    // Note: 'A' and 'C' use single quotes (char), "B" uses double quotes (string) - both work
+    // The API accepts both char (single quotes) and string (double quotes) for letters
+    // Below demonstrates both methods work: 'A' is char, "B" is string, 'C' is char
 
     if (buttons.isPressed('A')) {
       Serial.println("Button A pressed!");
