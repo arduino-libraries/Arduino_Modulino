@@ -1,6 +1,9 @@
 /*
  * Modulino Buttons - Button2 Integration
- * Integration with https://github.com/LennartHennigs/Button2
+ * Integration with the "Button2" library:
+ * https://github.com/LennartHennigs/Button2
+ *
+ * If using Arduino IDE, install Button2 via Library Manager to use this example.
  *
  * This example code is in the public domain. 
  * Copyright (c) 2025 Arduino
