@@ -3,6 +3,7 @@
 ModulinoVibro vibro;
 
 void setup() {
+  Serial.begin(9600);
   Modulino.begin();
   vibro.begin();
 }
