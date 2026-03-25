@@ -22,8 +22,6 @@
  * 
  * Button2 library must be installed:
  * - In Arduino IDE: Tools > Manage Libraries > Search "Button2" > Install
- * 
- * Integration with Button2 (https://github.com/LennartHennigs/Button2)
  *
  * This example code is in the public domain. 
  * Copyright (c) 2025 Arduino
