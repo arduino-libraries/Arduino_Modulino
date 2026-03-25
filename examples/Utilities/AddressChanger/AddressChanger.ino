@@ -61,7 +61,7 @@ void loop() {
 // Updates the device at current address to new address. Supports broadcasting and setting default address (0).
 // Returns true if the update was successful, false otherwise.
 bool updateI2cAddress(int curAddress, int newAddress) {
-  uint8_t data[40] = { 'C', 'F', newAddress * 2 };
+  uint8_t data[48] = { 'C', 'F', newAddress * 2 };
   memset(data + 3, 0, sizeof(data) - 3);  // Zero the rest of the buffer.
 
   // Validate the current address, it must match a detected device.
