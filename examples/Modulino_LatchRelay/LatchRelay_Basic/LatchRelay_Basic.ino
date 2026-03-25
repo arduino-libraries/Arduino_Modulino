@@ -26,7 +26,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#include <Modulino.h>
+#include <Arduino_Modulino.h>
 
 // Create a ModulinoLatchRelay object
 ModulinoLatchRelay relay;

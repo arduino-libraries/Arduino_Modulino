@@ -20,8 +20,7 @@
  * Hardware required:
  * - Modulino Buttons module
  * 
- * Button2 library must be installed:
- * - In Arduino IDE: Tools > Manage Libraries > Search "Button2" > Install
+ * If using Arduino IDE, install Button2 via Library Manager to use this example.
  *
  * This example code is in the public domain. 
  * Copyright (c) 2025 Arduino
