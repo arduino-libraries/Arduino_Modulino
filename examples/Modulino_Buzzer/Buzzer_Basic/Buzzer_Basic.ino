@@ -35,7 +35,7 @@ void setup(){
 
 void loop(){
 
-  // Play tone at specified frequency (440Hz) for specified duration (1000ms = 1 second)
+  // Play tone at specified frequency and duration
   buzzer.tone(frequency, duration);
   // Wait for the tone to finish playing
   delay(1000);
