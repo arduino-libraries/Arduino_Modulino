@@ -1,5 +1,27 @@
 /*
  * Modulino - Firmware Updater
+ * 
+ * This utility updates the firmware on Modulino modules.
+ * 
+ * IMPORTANT: This is an advanced tool for updating module firmware.
+ * Only use this if instructed by Arduino support or if you need to
+ * restore a module to working condition.
+ * 
+ * Instructions:
+ * 1. Connect ONLY ONE Modulino module at a time
+ * 2. Upload this sketch to your Arduino
+ * 3. The sketch will automatically detect and flash the appropriate firmware
+ * 4. On UNO R4 WiFi, the LED matrix will show "PASS" or "FAIL" when done
+ * 5. Wait for the update to complete before disconnecting
+ * 
+ * Special case for LED Matrix:
+ * - Set force_led_matrix = true if programming a blank LED Matrix module
+ * 
+ * NOTE: This uses the STM32 bootloader protocol to flash firmware.
+ * Do not disconnect power during the update process.
+ * 
+ * Reference: STM32 I2C bootloader protocol
+ * https://www.st.com/resource/en/application_note/an4221-i2c-protocol-used-in-the-stm32-bootloader-stmicroelectronics.pdf
  *
  * This example code is in the public domain. 
  * Copyright (c) 2025 Arduino
@@ -16,19 +38,24 @@
 #include "fw.h"
 #include "fw_ledmatrix.h"
 
+// Reference: STM32 I2C bootloader protocol documentation
 // https://www.st.com/resource/en/application_note/an4221-i2c-protocol-used-in-the-stm32-bootloader-stmicroelectronics.pdf
 
 bool flash(const uint8_t* binary, size_t lenght, bool verbose = true);
 Module modulino;
 
 // Change this to true if programming a blank Modulino LED Matrix
+// For all other modules, keep this false
 bool force_led_matrix = false;
 
 void setup() {
   Serial.begin(115200);
+  // Initialize Modulino communication
   Modulino.begin();
+  // Set I2C clock to 400kHz for faster communication
   modulino.getWire()->setClock(400000);
 
+  // Check if module is already in bootloader mode (address 0x64)
   modulino.getWire()->beginTransmission(0x64);
   auto is_boot_mode = (modulino.getWire()->endTransmission() == 0);
 
@@ -38,8 +65,10 @@ void setup() {
 
   bool is_led_matrix = false;
 
-  // Send reset to the module; remember, connect only ONE module at a time
+  // Send reset command to module if not already in boot mode
+  // IMPORTANT: Connect only ONE module at a time
   if (!is_boot_mode) {
+    // Check if connected module is an LED matrix (address 0x39)
     modulino.getWire()->beginTransmission(0x39);
     is_led_matrix = (modulino.getWire()->endTransmission() == 0);
 
@@ -47,19 +76,24 @@ void setup() {
       Serial.println("led matrix mode");
     }
 
+    // Send reset command to enter bootloader mode
     if (sendReset() != 0) {
       Serial.println("Send reset failed");
     }
   }
 
+  // Flash the appropriate firmware based on module type
   bool result;
   if (is_led_matrix || force_led_matrix) {
+    // Flash LED Matrix firmware
     result = flash(matrix_node_base_bin, matrix_node_base_bin_len);
   } else {
+    // Flash standard Modulino firmware
     result = flash(node_base_bin, node_base_bin_len);
   }
 
 #if defined(ARDUINO_UNOWIFIR4)
+  // Display result on UNO R4 WiFi LED matrix
   if (result) {
     matrixInitAndDraw("PASS");
   } else {
