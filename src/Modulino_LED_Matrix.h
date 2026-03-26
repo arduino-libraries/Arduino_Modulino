@@ -65,6 +65,7 @@ public:
     void setMode(DisplayMode mode){
         _mode = mode;
         sendMode();
+        delay(1); // Give some time for the device to switch mode before sending frames
     }
 
     /**
@@ -571,6 +572,6 @@ private:
     voidFuncPtr _sequenceDoneCallBack = nullptr;
     HardwareI2C* _wire;
     uint8_t _address = DEFAULT_ADDRESS;
-    DisplayMode _mode = DisplayMode::MonochromaticHorizontal;
+    DisplayMode _mode = DisplayMode::Default;
     bool _initialized = false;
 };
