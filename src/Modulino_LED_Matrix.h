@@ -572,6 +572,6 @@ private:
     voidFuncPtr _sequenceDoneCallBack = nullptr;
     HardwareI2C* _wire;
     uint8_t _address = DEFAULT_ADDRESS;
-    DisplayMode _mode = DisplayMode::MonochromaticHorizontal;
+    DisplayMode _mode = DisplayMode::Default;
     bool _initialized = false;
 };
