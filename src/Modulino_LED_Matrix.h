@@ -65,6 +65,7 @@ public:
     void setMode(DisplayMode mode){
         _mode = mode;
         sendMode();
+        delay(1); // Give some time for the device to switch mode before sending frames
     }
 
     /**
