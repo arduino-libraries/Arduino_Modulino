@@ -17,7 +17,7 @@
  * 
  * This example code is in the public domain.
  * Copyright (c) 2025 Arduino
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: CC0-1.0
  */
 
 #include <Arduino_Modulino.h>
