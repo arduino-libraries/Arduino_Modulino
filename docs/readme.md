@@ -19,6 +19,7 @@ The **Modulino** library supports the following hardware modules:
 - **Motion (`ModulinoMovement`)**: Interface with the LSM6DSOX IMU sensor to get acceleration values.
 - **Temperature & Humidity (`ModulinoThermo`)**: Get temperature and humidity readings from the HS300x sensor.
 - **Distance (`ModulinoDistance`)**: Measures distance using a Time-of-Flight (ToF) sensor (VL53L0x).
+- **Display (`ModulinoDisplay`)**: Control a 128x64 OLED display for visual output.
 
 ## Library Initialization
 
@@ -114,6 +115,20 @@ Measures distance using a ToF (Time-of-Flight) sensor.
 ModulinoDistance distance;
 distance.begin();
 float distanceValue = distance.get();
+```
+
+### ModulinoDisplay
+Controls a 128x64 OLED display for visual output. You can draw text, shapes, and images on the screen using the [ArduinoGraphics](https://github.com/arduino-libraries/ArduinoGraphics) functions.
+
+```cpp
+ModulinoDisplay display;
+display.begin();
+display.beginDraw();
+display.background(0, 0, 0);
+display.stroke(255, 255, 255);
+display.textFont(Font_5x7);
+display.text("Hello Modulino!", 10, 10);
+display.endDraw();
 ```
 
 ## Example Usage

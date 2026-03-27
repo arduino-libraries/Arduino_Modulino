@@ -12,6 +12,7 @@
 | `class` [`ModulinoMovement`](#modulinomovement) | Handles the functionality of Modulino Movement,interfacing with the IMU sensor to get acceleration readings. |
 | `class` [`ModulinoThermo`](#modulinothermo) | Handles the functionality of Modulino Thermo, managing temperature sensors to provide real-time temperature and humidity readings.                                |
 | `class` [`ModulinoDistance`](#modulinodistance) | Handles the functionality of Modulino Distance, enabling distance measurement using ToF (Time-of-Flight) sensors for precise range detection. |
+| `class` [`ModulinoDisplay`](#modulinodisplay) | Handles the functionality of Modulino Display, managing OLED screen output for text and graphics display. |
 
 ### ModulinoClass
 
@@ -166,6 +167,16 @@ Represents a Modulino Distance module.
 - **`float get()`**  
   Returns the distance measured by the sensor in millimeters.  
   The measured distance in millimeters if available, `NAN` if the distance reading is invalid.
+
+---
+
+### ModulinoDisplay
+
+Represents a Modulino Display module.
+
+#### Methods
+
+Refer to the [ArduinoGraphics](https://github.com/arduino-libraries/ArduinoGraphics) class methods for specific drawing operations such as shapes, text, colors, and pixel manipulation.
 
 ## Constants
 
