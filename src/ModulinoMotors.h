@@ -194,7 +194,7 @@ public:
 	/**
 	 * @brief Command a stepper move using period-based speed.
 	 * @param steps Signed number of steps.
-	 * @param speedPeriod Step period in microseconds (1..65535).
+	 * @param speedPeriod Step period in 0.1 ms timer ticks (1..65535).
 	 * @return True on successful command write.
 	 */
 	bool moveStepper(int32_t steps, uint16_t speedPeriod) {
@@ -204,9 +204,11 @@ public:
 	/**
 	 * @brief Command a stepper move using period-based speed.
 	 * @param steps Signed number of steps.
-	 * @param speedPeriod Step period in microseconds (1..65535).
+	 * @param speedPeriod Step period in 0.1 ms timer ticks (1..65535).
 	 * @param releaseOnComplete True to release the coils after the move, false to keep holding torque.
 	 * @return True on successful command write.
+	 * @note The first step is executed immediately when the command is accepted.
+	 *       Remaining steps are paced by speedPeriod.
 	 */
 	bool moveStepper(int32_t steps, uint16_t speedPeriod, bool releaseOnComplete) {
 		if (speedPeriod < 1) {
