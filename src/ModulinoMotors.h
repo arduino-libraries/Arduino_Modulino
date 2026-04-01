@@ -76,10 +76,11 @@ public:
 	}
 
 	/**
-	 * @brief Release stepper coils immediately without changing the default move behavior.
+	 * @brief Release stepper coils with minimal delay without changing the default move behavior.
 	 * @return True on successful command write.
 	 */
 	bool release() {
+		// releaseDelayMs = 1 (minimum non-zero delay in current protocol)
 		uint8_t cmd[8] = {CMD_STEPPER, 0, 0, 0, 0, 1, 0, 1};
 		return sendCommand(cmd, sizeof(cmd));
 	}
@@ -195,22 +196,13 @@ public:
 	 * @brief Command a stepper move using period-based speed.
 	 * @param steps Signed number of steps.
 	 * @param speedPeriod Step period in 0.1 ms timer ticks (1..65535).
-	 * @return True on successful command write.
-	 */
-	bool moveStepper(int32_t steps, uint16_t speedPeriod) {
-		return moveStepper(steps, speedPeriod, _releaseOnCompleteDefault);
-	}
-
-	/**
-	 * @brief Command a stepper move using period-based speed.
-	 * @param steps Signed number of steps.
-	 * @param speedPeriod Step period in 0.1 ms timer ticks (1..65535).
-	 * @param releaseOnComplete True to release the coils after the move, false to keep holding torque.
+	 * @param releaseDelayMs Delay before releasing coils after move completion.
+	 *        0 keeps holding torque, 1..255 releases after that many milliseconds.
 	 * @return True on successful command write.
 	 * @note The first step is executed immediately when the command is accepted.
 	 *       Remaining steps are paced by speedPeriod.
 	 */
-	bool moveStepper(int32_t steps, uint16_t speedPeriod, bool releaseOnComplete) {
+	bool moveStepper(int32_t steps, uint16_t speedPeriod, uint8_t releaseDelayMs = 0) {
 		if (speedPeriod < 1) {
 			return false;
 		}
@@ -223,7 +215,7 @@ public:
 		cmd[4] = static_cast<uint8_t>((steps >> 24) & 0xFF);
 		cmd[5] = static_cast<uint8_t>(speedPeriod & 0xFF);
 		cmd[6] = static_cast<uint8_t>((speedPeriod >> 8) & 0xFF);
-		cmd[7] = static_cast<uint8_t>(releaseOnComplete ? 1 : 0);
+		cmd[7] = releaseDelayMs;
 		return sendCommand(cmd, sizeof(cmd));
 	}
 
@@ -231,20 +223,11 @@ public:
 	 * @brief Command a stepper move using target RPM.
 	 * @param steps Signed number of steps.
 	 * @param rpm Target shaft speed in RPM.
+	 * @param releaseDelayMs Delay before releasing coils after move completion.
+	 *        0 keeps holding torque, 1..255 releases after that many milliseconds.
 	 * @return True if inputs are valid and command is sent.
 	 */
-	bool moveStepperRpm(int32_t steps, float rpm) {
-		return moveStepperRpm(steps, rpm, _releaseOnCompleteDefault);
-	}
-
-	/**
-	 * @brief Command a stepper move using target RPM.
-	 * @param steps Signed number of steps.
-	 * @param rpm Target shaft speed in RPM.
-	 * @param releaseOnComplete True to release the coils after the move, false to keep holding torque.
-	 * @return True if inputs are valid and command is sent.
-	 */
-	bool moveStepperRpm(int32_t steps, float rpm, bool releaseOnComplete) {
+	bool moveStepperRpm(int32_t steps, float rpm, uint8_t releaseDelayMs = 0) {
 		if (_stepsPerRevolution < 1 || rpm <= 0.0f) {
 			return false;
 		}
@@ -322,16 +305,6 @@ public:
 			_hfsEnabled = enabled;
 		}
 		return ok;
-	}
-
-	/**
-	 * @brief Configure the default release behavior for subsequent stepper moves.
-	 * @param enabled True to release coils after the final step, false to hold position.
-	 * @return Always true.
-	 */
-	bool setReleaseOnComplete(bool enabled) {
-		_releaseOnCompleteDefault = enabled;
-		return true;
 	}
 
 	/**
@@ -458,14 +431,6 @@ public:
 	}
 
 	/**
-	 * @brief Get default release behavior used when no per-move flag is provided.
-	 * @return True if future moves default to release-on-complete.
-	 */
-	bool releaseOnCompleteDefault() const {
-		return _releaseOnCompleteDefault;
-	}
-
-	/**
 	 * @brief Get decay mode from last telemetry update.
 	 * @return Decay mode as a typed enum.
 	 */
@@ -583,7 +548,6 @@ private:
 	bool _halfStepEnabled = false;
 	uint8_t _decayMode = 0;
 	bool _hfsEnabled = false;
-	bool _releaseOnCompleteDefault = false;
 	bool _releaseOnCompleteReported = false;
 	bool _busy = false;
 

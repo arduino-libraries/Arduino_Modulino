@@ -39,24 +39,24 @@ void waitUntilIdle() {
   }
 }
 
-void runMove(const char* label, int32_t steps, float rpm, bool releaseOnComplete) {
+void runMove(const char* label, int32_t steps, float rpm, uint8_t releaseDelayMs) {
   Serial.print(label);
-  Serial.print(" | release_on_complete=");
-  Serial.println(releaseOnComplete ? "true" : "false");
-  motors.moveStepperRpm(steps, rpm, releaseOnComplete);
+  Serial.print(" | release_delay_ms=");
+  Serial.println(releaseDelayMs);
+  motors.moveStepperRpm(steps, rpm, releaseDelayMs);
   waitUntilIdle();
   delay(600);
 }
 
 void loop() {
-  runMove("Forward: 1 rev at 60 RPM, hold at target", 200, 60.0f, false);
+  runMove("Forward: 1 rev at 60 RPM, hold at target", 200, 60.0f, 0);
 
-  runMove("Backward: 1 rev at 120 RPM, release at target", -200, 120.0f, true);
+  runMove("Backward: 1 rev at 120 RPM, release after 50ms", -200, 120.0f, 50);
 
   Serial.println("Half-step mode: hold, then release");
   motors.setHalfStepEnabled(true);  // effective steps/rev doubles to 400
-  runMove("Half-step forward: 1 rev at 90 RPM", 400, 90.0f, false);
-  runMove("Half-step backward: 1 rev at 45 RPM", -400, 45.0f, true);
+  runMove("Half-step forward: 1 rev at 90 RPM", 400, 90.0f, 0);
+  runMove("Half-step backward: 1 rev at 45 RPM", -400, 45.0f, 50);
 
   motors.setHalfStepEnabled(false);
   delay(1200);
