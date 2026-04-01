@@ -255,13 +255,13 @@ public:
 			return false;
 		}
 
-		const float periodFloat = 60000000.0f / pulsesPerMinute;
+		const float periodFloat = 600000.0f / pulsesPerMinute;
 		if (periodFloat < 1.0f || periodFloat > 65535.0f) {
 			return false;
 		}
 
-		const uint16_t periodUs = static_cast<uint16_t>(periodFloat);
-		return moveStepper(steps, periodUs, releaseOnComplete);
+		const uint16_t periodTicks = static_cast<uint16_t>(periodFloat);
+		return moveStepper(steps, periodTicks, releaseDelayMs);
 	}
 
 	/**
