@@ -173,6 +173,22 @@ public:
 	}
 
 	/**
+	 * @brief Set inversion flag for stepper direction.
+	 * @param invert True to invert the meaning of positive/negative step counts.
+	 */
+	void setStepperDirectionInverted(bool invert) {
+		_stepperDirectionInverted = invert;
+	}
+
+	/**
+	 * @brief Get inversion state for stepper direction.
+	 * @return True when stepper direction is inverted.
+	 */
+	bool stepperDirectionInverted() const {
+		return _stepperDirectionInverted;
+	}
+
+	/**
 	 * @brief Set raw signed DC speeds for channels A and B.
 	 * @param speedA Raw signed speed for A in range -32767..32767.
 	 * @param speedB Raw signed speed for B in range -32767..32767.
@@ -205,6 +221,10 @@ public:
 	bool moveStepper(int32_t steps, uint16_t speedPeriod, uint8_t releaseDelayMs = 0) {
 		if (speedPeriod < 1) {
 			return false;
+		}
+
+		if (_stepperDirectionInverted) {
+			steps = -steps;
 		}
 
 		uint8_t cmd[8];
@@ -542,6 +562,7 @@ private:
 	bool _invertA = false;
 	uint8_t _speedB = 0;
 	bool _invertB = false;
+	bool _stepperDirectionInverted = false;
 
 	uint16_t _frequencyHz = 20000;
 	uint8_t _mode = MODE_DC;
