@@ -27,7 +27,7 @@ enum class DisplayMode {
     MonochromaticVertical,
     MonochromaticHorizontal,
     Grayscale,
-    Default = MonochromaticVertical
+    Default = MonochromaticHorizontal
 };
 
 class ModulinoLEDMatrix
