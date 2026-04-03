@@ -168,13 +168,13 @@ You can explore the examples [here](../examples).
 
 ## Stepper Notes (ModulinoMotors)
 
-- `moveStepper(steps, speedPeriod, ...)` uses `speedPeriod` in 0.1 ms timer ticks (`1..65535`).
+- `moveStepper(steps, speedPeriod, releaseDelayMs)` uses `speedPeriod` in 0.1 ms timer ticks (`1..65535`).
 - `moveStepperRpm(...)` computes the matching period from RPM and `stepsPerRevolution`.
 - The first step of a move is executed immediately on command start. Remaining steps are timer-paced.
-- `releaseOnComplete` controls the post-move state:
-  - `false`: hold coils energized for holding torque.
-  - `true`: release coils when the move completes.
-- `hold()` and `release()` apply those states immediately and do not change the default used by subsequent moves.
+- `releaseDelayMs` controls the post-move state:
+  - `0`: hold coils energized for holding torque.
+  - `1..255`: release coils after the specified delay in milliseconds.
+- `hold()` keeps coils energized immediately. `release()` requests a minimal release delay (1 ms).
 
 ### Utilities
 
