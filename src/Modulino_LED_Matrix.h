@@ -14,7 +14,6 @@
 #define DEFAULT_WIRE Wire
 #endif
 
-constexpr uint8_t NUM_LEDS = 96;
 constexpr uint8_t DEFAULT_ADDRESS = 0x39;
 constexpr uint8_t GRAYSCALE_FRAME_SIZE = 48;
 constexpr uint8_t MONOCHROMATIC_FRAME_SIZE = 12;
