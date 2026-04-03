@@ -1,5 +1,14 @@
 #pragma once
 
+// Fix compiler errors when compiling this 
+// together with "Arduino_LED_Matrix.h"
+// as that header uses precompiler macros that 
+// rewrite function names globally.
+#undef loadSequence
+#undef renderBitmap
+#undef endTextAnimation
+#undef loadTextAnimationSequence
+
 #include "Arduino.h"
 #include "Wire.h"
 
