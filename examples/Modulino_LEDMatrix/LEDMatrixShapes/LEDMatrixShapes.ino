@@ -7,7 +7,7 @@
 */
 
 #include "ArduinoGraphics.h"
-#include "Modulino_LED_Matrix.h"
+#include <Arduino_Modulino.h>
 
 ModulinoLEDMatrix matrix;
 
