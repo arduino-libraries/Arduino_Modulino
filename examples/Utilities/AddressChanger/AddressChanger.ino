@@ -63,7 +63,8 @@ void setup() {
   Serial.begin(115200);
 
   // Wait for serial port to initialize
-  delay(600);
+  while (!Serial) {};
+
   // Scan I2C bus and display all detected Modulino devices
   discoverDevices();
 }
@@ -195,7 +196,7 @@ void discoverDevices() {
   numRows = 0;
 
   // Discover all modulino devices connected to the I2C bus.
-  for (int addr = 8; addr < 128; addr++) {
+  for (int addr = 0; addr < 128; addr++) {
     Wire1.beginTransmission(addr);
     if (Wire1.endTransmission() != 0) continue;
 
@@ -278,6 +279,8 @@ String fixedWidth(String str, int width) {
 
 String pinstrapToName(uint8_t pinstrap) {
   switch (pinstrap) {
+    case 0x04:
+      return "Latch Relay";
     case 0x3C:
       return "Buzzer";
     case 0x58:
