@@ -17,6 +17,11 @@ The **Modulino** library supports the following hardware modules:
 - **LEDs (`ModulinoPixels`)**: Control RGB LEDs with customizable display modes.
 - **Knob (`ModulinoKnob`)**: Read the value of a rotary encoder.
 - **Motion (`ModulinoMovement`)**: Interface with the LSM6DSOX IMU sensor to get acceleration values.
+- **LED Matrix (`ModulinoLEDMatrix`)**: Customizable visual output ranging from simple indicators to pixel animations.
+- **Light (`ModulinoLight`)**: Detects IR light, recognizes color, and measures surrounding light levels.
+- **Latch Relay (`ModulinoLatchRelay`)**: Enables safe and efficient switching of external loads.
+- **Joystick (`ModulinoJoystick`)**: Easily navigate, steer, or control movement with smooth analog precision.
+- **Vibro (`ModulinoVibro`)**: Provides subtle vibration responses for alerts or notifications.
 - **Temperature & Humidity (`ModulinoThermo`)**: Get temperature and humidity readings from the HS300x sensor.
 - **Distance (`ModulinoDistance`)**: Measures distance using a Time-of-Flight (ToF) sensor (VL53L0x).
 
@@ -114,6 +119,66 @@ Measures distance using a ToF (Time-of-Flight) sensor.
 ModulinoDistance distance;
 distance.begin();
 float distanceValue = distance.get();
+```
+
+### ModulinoLEDMatrix
+Brings your projects to life with customizable visual output, ranging from simple indicators to pixel animations.
+
+![Modulino LED Matrix](./images/modulino-led-matrix.jpg)
+
+```cpp
+ModulinoLEDMatrix matrix;
+matrix.begin();
+// Further matrix manipulation ...
+```
+
+### ModulinoLight
+Detects IR light, recognizes color, and measures surrounding light levels so your projects can automatically adapt to their environment.
+
+![Modulino Light](./images/modulino-light.jpg)
+
+```cpp
+ModulinoLight light;
+light.begin();
+if (light.update()) {
+  ModulinoColor color = light.getColor();
+}
+```
+
+### ModulinoLatchRelay
+Enables safe and efficient switching of external loads, ideal for automation and energy-saving applications.
+
+![Modulino Latch Relay](./images/modulino-latch-relay.jpg)
+
+```cpp
+ModulinoLatchRelay relay;
+relay.begin();
+relay.set();    // Switch the relay state to on
+```
+
+### ModulinoJoystick
+Lets you easily navigate, steer, or control movement in any interactive setup with smooth analog precision.
+
+![Modulino Joystick](./images/modulino-joystick.jpg)
+
+```cpp
+ModulinoJoystick joystick;
+joystick.begin();
+if (joystick.update()) {
+  int8_t x = joystick.getX();
+  int8_t y = joystick.getY();
+}
+```
+
+### ModulinoVibro
+Provides subtle vibration responses for alerts, notifications, or immersive experiences.
+
+![Modulino Vibro](./images/modulino-vibro.jpg)
+
+```cpp
+ModulinoVibro vibro;
+vibro.begin();
+vibro.on(1000);  // Vibrate for 1000ms
 ```
 
 ## Example Usage
