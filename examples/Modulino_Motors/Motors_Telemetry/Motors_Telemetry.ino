@@ -2,10 +2,12 @@
  * Modulino Motors - Telemetry
  *
  * This example demonstrates telemetry polling and current readout,
- * including HFS mode effect on sensed current scaling.
- *
+ * including HFS mode (Half-Full-Scale) effect on sensed current scaling.
+ * Half-full-scale mode can be enabled to improve current accuracy in the lower range 
+ * at the cost of maximum current capacity (1.9A MAX in HFS mode vs 3.8A MAX in full-scale mode).
+ * 
  * This example code is in the public domain.
- * Copyright (c) 2025 Arduino
+ * Copyright (C) Arduino s.r.l. and/or its affiliated companies
  * SPDX-License-Identifier: MPL-2.0
  */
 
@@ -43,7 +45,7 @@ void setup() {
   Modulino.begin();
   motors.begin();
 
-  motors.setStepperModeEnabled(false);
+  motors.setStepperModeEnabled(false); // DC mode
   motors.setDecay(ModulinoMotors::DecayMode::FAST);
   motors.setSpeedA(BASE_SPEED);
   motors.setSpeedB(BASE_SPEED);
@@ -51,15 +53,17 @@ void setup() {
 
 void loop() {
   motors.setHalfFullScaleEnabled(false);
-  delay(200);
+  delay(200); // Allow time for mode change to take effect before reading telemetry
+  // Print results using full scale current sensing
   printTelemetry("Full-scale");
 
   motors.setHalfFullScaleEnabled(true);
-  delay(200);
+  delay(200); // Allow time for mode change to take effect before reading telemetry
+  // Print results using half-full-scale current sensing
   printTelemetry("Half-scale");
 
   motors.stop();
-  delay(300);
+  delay(300); // Allow time for stop command to take effect before reading telemetry
   printTelemetry("After stop");
 
   motors.setHalfFullScaleEnabled(false);

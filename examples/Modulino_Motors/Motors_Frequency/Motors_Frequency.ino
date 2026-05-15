@@ -5,7 +5,7 @@
  * at low speed, which can alter audible motor tone and behavior.
  *
  * This example code is in the public domain.
- * Copyright (c) 2025 Arduino
+ * Copyright (C) Arduino s.r.l. and/or its affiliated companies
  * SPDX-License-Identifier: MPL-2.0
  */
 

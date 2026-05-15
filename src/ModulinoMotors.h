@@ -2,10 +2,17 @@
 
 #include "Modulino.h"
 
+/**
+ * @brief Modulino module class for motor control.
+ * This class provides an interface to control DC and stepper motors via the Modulino platform.
+ */
 class ModulinoMotors : public Module {
 public:
 	/**
 	 * @brief Supported motor current decay modes.
+	 * Slow decay: Smoother and quieter motor operation, but slower to adapt to speed/current changes.
+	 * Fast decay: Quick response to changes, but can cause more vibration and noise (ripple).
+	 * Mixed decay: A balance between smooth operation and quick response.
 	 */
 	enum class DecayMode : uint8_t {
 		SLOW = 0,
@@ -212,6 +219,7 @@ public:
 	 * @brief Command a stepper move using period-based speed.
 	 * @param steps Signed number of steps.
 	 * @param speedPeriod Step period in 0.1 ms timer ticks (1..65535).
+	 *                    e.g. speedPeriod=100 means 10 ms between steps.
 	 * @param releaseDelayMs Delay before releasing coils after move completion.
 	 *        0 keeps holding torque, 1..255 releases after that many milliseconds.
 	 * @return True on successful command write.
@@ -315,6 +323,10 @@ public:
 
 	/**
 	 * @brief Configure half-full-scale current sense mode.
+	 * This affects the scaling of sensed current telemetry.
+	 * Disable this for: Optimized efficiency and extended operating range up to 3.8A MAX
+	 * Enable this for: Reduced operating range up to 1.9A MAX. Improved current accuracy control in the bottom end of the current range 
+	 * 
 	 * @param enabled True to enable half-full-scale mode.
 	 * @return True on successful command write.
 	 */

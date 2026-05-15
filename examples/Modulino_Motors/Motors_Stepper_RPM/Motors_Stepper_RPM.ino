@@ -7,7 +7,7 @@
  * It uses the constructor that only specifies steps-per-revolution.
  *
  * This example code is in the public domain.
- * Copyright (c) 2025 Arduino
+ * Copyright (C) Arduino s.r.l. and/or its affiliated companies
  * SPDX-License-Identifier: MPL-2.0
  */
 
@@ -22,10 +22,17 @@ void setup() {
   motors.begin();
 
   motors.setStepperModeEnabled(true);
+  // Half stepping provides smoother motion by using twice as many steps per revolution, 
+  // but it also reduces the maximum speed and holding torque
   motors.setHalfStepEnabled(false);  // full-step
   motors.setDecay(ModulinoMotors::DecayMode::FAST);
 }
 
+/**
+ * Wait until the motors are no longer busy (i.e. a move has completed).
+ * This is a simple polling loop that checks the busy status every 10 ms.
+ * In a real application, you might want to add a timeout or handle other tasks while waiting
+ */
 void waitUntilIdle() {
   while (true) {
     if (!motors.update()) {
@@ -39,6 +46,13 @@ void waitUntilIdle() {
   }
 }
 
+/**
+ * Run a stepper move with the specified parameters and print the label.
+ * @param label A descriptive label for the move being executed.
+ * @param steps The number of steps to move (positive for forward, negative for backward).
+ * @param rpm The speed of the move in revolutions per minute.
+ * @param releaseDelayMs The delay in milliseconds after the move completes before releasing the coils (0 to hold, > 0 to release after delay).
+ */
 void runMove(const char* label, int32_t steps, float rpm, uint8_t releaseDelayMs) {
   Serial.print(label);
   Serial.print(" | release_delay_ms=");
