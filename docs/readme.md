@@ -127,6 +127,8 @@ Brings your projects to life with customizable visual output, ranging from simpl
 ![Modulino LED Matrix](./images/modulino-led-matrix.jpg)
 
 ```cpp
+#include <Modulino_LED_Matrix.h>
+// ...
 ModulinoLEDMatrix matrix;
 matrix.begin();
 // Further matrix manipulation ...
