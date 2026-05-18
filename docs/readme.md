@@ -14,16 +14,16 @@ The **Modulino** library supports the following hardware modules:
 
 - **Buttons (`ModulinoButtons`)**: Read the state of buttons and control the associated LEDs.
 - **Buzzer (`ModulinoBuzzer`)**: Activate and deactivate the buzzer and set its frequency.
-- **LEDs (`ModulinoPixels`)**: Control RGB LEDs with customizable display modes.
-- **Knob (`ModulinoKnob`)**: Read the value of a rotary encoder.
-- **Motion (`ModulinoMovement`)**: Interface with the LSM6DSOX IMU sensor to get acceleration values.
-- **LED Matrix (`ModulinoLEDMatrix`)**: Customizable visual output ranging from simple indicators to pixel animations.
-- **Light (`ModulinoLight`)**: Detects IR light, recognizes color, and measures surrounding light levels.
-- **Latch Relay (`ModulinoLatchRelay`)**: Enables safe and efficient switching of external loads.
-- **Joystick (`ModulinoJoystick`)**: Easily navigate, steer, or control movement with smooth analog precision.
-- **Vibro (`ModulinoVibro`)**: Provides subtle vibration responses for alerts or notifications.
-- **Temperature & Humidity (`ModulinoThermo`)**: Get temperature and humidity readings from the HS300x sensor.
 - **Distance (`ModulinoDistance`)**: Measures distance using a Time-of-Flight (ToF) sensor (VL53L0x).
+- **Joystick (`ModulinoJoystick`)**: Easily navigate, steer, or control movement with smooth analog precision.
+- **Knob (`ModulinoKnob`)**: Read the value of a rotary encoder.
+- **Latch Relay (`ModulinoLatchRelay`)**: Enables safe and efficient switching of external loads.
+- **LED Matrix (`ModulinoLEDMatrix`)**: Customizable visual output ranging from simple indicators to pixel animations.
+- **LEDs (`ModulinoPixels`)**: Control RGB LEDs with customizable display modes.
+- **Light (`ModulinoLight`)**: Detects IR light, recognizes color, and measures surrounding light levels.
+- **Motion (`ModulinoMovement`)**: Interface with the LSM6DSOX IMU sensor to get acceleration values.
+- **Temperature & Humidity (`ModulinoThermo`)**: Get temperature and humidity readings from the HS300x sensor.
+- **Vibro (`ModulinoVibro`)**: Provides subtle vibration responses for alerts or notifications.
 
 ## Library Initialization
 
@@ -65,15 +65,29 @@ buzzer.begin();
 buzzer.tone(440, 1000);  // 440Hz frequency for 1000ms
 ```
 
-### ModulinoPixels
-Controls an array of 8 RGB LEDs, allowing you to set the colors and brightness. You can also clear individual LEDs or the entire array.
+### ModulinoDistance
+Measures distance using a ToF (Time-of-Flight) sensor.
 
-![Modulino Pixels](./images/modulino-pixels.jpg)
+![Modulino Distance](./images/modulino-distance.jpg)
 
 ```cpp
-ModulinoPixels leds;
-leds.set(0, ModulinoColor(255, 0, 0));  // Set the first LED (Position: 0) to red
-leds.show();  // Display the LEDs
+ModulinoDistance distance;
+distance.begin();
+float distanceValue = distance.get();
+```
+
+### ModulinoJoystick
+Lets you easily navigate, steer, or control movement in any interactive setup with smooth analog precision.
+
+![Modulino Joystick](./images/modulino-joystick.jpg)
+
+```cpp
+ModulinoJoystick joystick;
+joystick.begin();
+if (joystick.update()) {
+  int8_t x = joystick.getX();
+  int8_t y = joystick.getY();
+}
 ```
 
 ### ModulinoKnob
@@ -87,38 +101,15 @@ knob.begin();
 int16_t value = knob.get();  // Get the value of the encoder
 ```
 
-###  ModulinoMovement
-Interfaces with the LSM6DSOX IMU sensor to get acceleration readings.
+### ModulinoLatchRelay
+Enables safe and efficient switching of external loads, ideal for automation and energy-saving applications.
 
-![Modulino Movement](./images/modulino-movement.jpg)
-
-```cpp
-ModulinoMovement movement;
-movement.begin();
-float x = movement.getX();
-```
-
-### ModulinoThermo
-Reads temperature and humidity data from the HS300x sensor.
-
-![Modulino Thermo](./images/modulino-thermo.jpg)
+![Modulino Latch Relay](./images/modulino-latch-relay.jpg)
 
 ```cpp
-ModulinoThermo thermo;
-thermo.begin();
-float temperature = thermo.getTemperature();
-float humidity = thermo.getHumidity();
-```
-
-### ModulinoDistance
-Measures distance using a ToF (Time-of-Flight) sensor.
-
-![Modulino Distance](./images/modulino-distance.jpg)
-
-```cpp
-ModulinoDistance distance;
-distance.begin();
-float distanceValue = distance.get();
+ModulinoLatchRelay relay;
+relay.begin();
+relay.set();    // Switch the relay state to on
 ```
 
 ### ModulinoLEDMatrix
@@ -147,29 +138,38 @@ if (light.update()) {
 }
 ```
 
-### ModulinoLatchRelay
-Enables safe and efficient switching of external loads, ideal for automation and energy-saving applications.
+### ModulinoMovement
+Interfaces with the LSM6DSOX IMU sensor to get acceleration readings.
 
-![Modulino Latch Relay](./images/modulino-latch-relay.jpg)
+![Modulino Movement](./images/modulino-movement.jpg)
 
 ```cpp
-ModulinoLatchRelay relay;
-relay.begin();
-relay.set();    // Switch the relay state to on
+ModulinoMovement movement;
+movement.begin();
+float x = movement.getX();
 ```
 
-### ModulinoJoystick
-Lets you easily navigate, steer, or control movement in any interactive setup with smooth analog precision.
+### ModulinoPixels
+Controls an array of 8 RGB LEDs, allowing you to set the colors and brightness. You can also clear individual LEDs or the entire array.
 
-![Modulino Joystick](./images/modulino-joystick.jpg)
+![Modulino Pixels](./images/modulino-pixels.jpg)
 
 ```cpp
-ModulinoJoystick joystick;
-joystick.begin();
-if (joystick.update()) {
-  int8_t x = joystick.getX();
-  int8_t y = joystick.getY();
-}
+ModulinoPixels leds;
+leds.set(0, ModulinoColor(255, 0, 0));  // Set the first LED (Position: 0) to red
+leds.show();  // Display the LEDs
+```
+
+### ModulinoThermo
+Reads temperature and humidity data from the HS300x sensor.
+
+![Modulino Thermo](./images/modulino-thermo.jpg)
+
+```cpp
+ModulinoThermo thermo;
+thermo.begin();
+float temperature = thermo.getTemperature();
+float humidity = thermo.getHumidity();
 ```
 
 ### ModulinoVibro
