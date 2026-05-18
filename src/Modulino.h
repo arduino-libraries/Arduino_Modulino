@@ -120,6 +120,9 @@ public:
   operator bool() {
     return address < 0x7F;
   }
+  uint8_t getAddress() const {
+    return address;
+  }
   static HardwareI2C* getWire() {
     return Modulino._wire;
   }
@@ -526,14 +529,16 @@ extern ModulinoColor WHITE;
 
 class ModulinoMovement : public Module {
 public:
-  ModulinoMovement(ModulinoHubPort* hubPort = nullptr)
-    : Module(0xFF, "MOVEMENT", hubPort) {}
+  ModulinoMovement(uint8_t address = 0x6A, ModulinoHubPort* hubPort = nullptr)
+    : Module(address, "MOVEMENT", hubPort) {}
+  ModulinoMovement(ModulinoHubPort* hubPort, uint8_t address = 0x6A)
+    : Module(address, "MOVEMENT", hubPort) {}
   bool begin() {
     if (hubPort != nullptr) {
       hubPort->select();
     }
     if (_imu == nullptr) {
-      _imu = new LSM6DSOXClass(*((TwoWire*)getWire()), 0x6A);
+      _imu = new LSM6DSOXClass(*((TwoWire*)getWire()), getAddress());
     }
     initialized = _imu->begin();
     __increaseI2CPriority();
