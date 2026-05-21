@@ -727,16 +727,20 @@ public:
     return (initialized != 0);
   }
   bool update() {
-    if (initialized) {
-      if (hubPort != nullptr) {
-        hubPort->select();
-      }
-      auto ret = _light->readAllSensors(r, g, b, rawlux, lux, ir);
-      if (hubPort != nullptr) {
-        hubPort->clear();
-      }
+    if (!initialized) {
+      return false;
     }
-    return 0;
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
+    auto ret = _light->readAllSensors(r, g, b, rawlux, lux, ir);
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
+    if (ret == 1) {
+      return true;
+    }
+    return false;
   }
   ModulinoColor getColor() {
     return ModulinoColor(r, g, b);
