@@ -296,6 +296,8 @@ String pinstrapToName(uint8_t pinstrap) {
       return "Smartleds";
     case 0x70:
       return "Vibro";
+    case 0x48:
+      return "Motors";
   }
   return "UNKNOWN";
 }

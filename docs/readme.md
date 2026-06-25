@@ -233,6 +233,16 @@ The examples folder is organized by Modulino type. Each module has its own folde
 
 You can explore the examples [here](../examples).
 
+## Stepper Notes (ModulinoMotors)
+
+- `moveStepper(steps, speedPeriod, releaseDelayMs)` uses `speedPeriod` in 0.1 ms timer ticks (`1..65535`).
+- `moveStepperRpm(...)` computes the matching period from RPM and `stepsPerRevolution`.
+- The first step of a move is executed immediately on command start. Remaining steps are timer-paced.
+- `releaseDelayMs` controls the post-move state:
+  - `0`: hold coils energized for holding torque.
+  - `1..255`: release coils after the specified delay in milliseconds.
+- `hold()` keeps coils energized immediately. `release()` requests a minimal release delay (1 ms).
+
 ### Utilities
 
 In the [Utilities](../examples/Utilities) folder, you will find programs designed to help you manage and manipulate the Modulino:
