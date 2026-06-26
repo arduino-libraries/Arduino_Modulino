@@ -736,11 +736,8 @@ public:
     auto ret = _light->readAllSensors(r, g, b, rawlux, lux, ir);
     if (hubPort != nullptr) {
       hubPort->clear();
-    }
-    if (ret == 1) {
-      return true;
-    }
-    return false;
+    } 
+    return ret == 1;
   }
   ModulinoColor getColor() {
     return ModulinoColor(r, g, b);
