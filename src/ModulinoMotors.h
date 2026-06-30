@@ -62,6 +62,17 @@ public:
 			_stepsPerRevolution(stepsPerRevolution) {}
 
 	/**
+	 * @brief Construct a Modulino Motors instance using default address.
+	 * @param hubPort Hub port selector.
+	 * @param stepsPerRevolution Full-step motor steps per shaft revolution.
+	 */
+	ModulinoMotors(ModulinoHubPort* hubPort, int stepsPerRevolution)
+		: Module(0xFF, "MOTORS", hubPort),
+			_stepsPerRevolution((stepsPerRevolution >= 1 && stepsPerRevolution <= 32767)
+				? static_cast<int16_t>(stepsPerRevolution)
+				: static_cast<int16_t>(-1)) {}
+
+	/**
 	 * @brief Discover the motors module on known addresses.
 	 * @return Detected address encoding, or 0xFF if not found.
 	 */

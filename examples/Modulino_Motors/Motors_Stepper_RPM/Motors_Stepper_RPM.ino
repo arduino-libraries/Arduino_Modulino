@@ -19,7 +19,11 @@ ModulinoMotors motors(200);
 void setup() {
   Serial.begin(9600);
   Modulino.begin();
-  motors.begin();
+  
+  if(!motors.begin()) {
+    Serial.println("Motors module not found!");
+    while(1);
+  }
 
   motors.setStepperModeEnabled(true);
   // Half stepping provides smoother motion by using twice as many steps per revolution, 
