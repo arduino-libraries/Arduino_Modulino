@@ -41,7 +41,9 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#include "Wire.h"
+#include <Arduino_Modulino.h>
+
+Module module;
 
 // Structure to store information about detected Modulino devices
 struct DetectedModulino {
@@ -57,8 +59,8 @@ int numRows = 0;  // Number of devices currently detected
 
 
 void setup() {
-  // Initialize I2C communication on Wire1 interface
-  Wire1.begin();
+  // Initialize Modulino communication
+  Modulino.begin();
   // Initialize serial communication at 115200 baud
   Serial.begin(115200);
 
@@ -142,9 +144,9 @@ bool updateI2cAddress(int curAddress, int newAddress) {
   if (newAddress == 0) Serial.print(" (default address)");
   Serial.print("...");
 
-  Wire1.beginTransmission(curAddress);
-  Wire1.write(data, 40);
-  Wire1.endTransmission();
+  module.getWire()->beginTransmission(curAddress);
+  module.getWire()->write(data, 40);
+  module.getWire()->endTransmission();
 
   delay(500);
 
@@ -152,8 +154,8 @@ bool updateI2cAddress(int curAddress, int newAddress) {
     Serial.println(" done\n");
     return true;
   } else {
-    Wire1.requestFrom(newAddress, 1);
-    if (Wire1.available()) {
+    module.getWire()->requestFrom(newAddress, 1);
+    if (module.getWire()->available()) {
       Serial.println(" done\n");
       return true;
     } else {
@@ -197,8 +199,8 @@ void discoverDevices() {
 
   // Discover all modulino devices connected to the I2C bus.
   for (int addr = 0; addr < 128; addr++) {
-    Wire1.beginTransmission(addr);
-    if (Wire1.endTransmission() != 0) continue;
+    module.getWire()->beginTransmission(addr);
+    if (module.getWire()->endTransmission() != 0) continue;
 
     if (numRows >= MAX_DEVICES) {
       Serial.println("Too many devices connected, maximum supported is" + String(MAX_DEVICES));
@@ -215,15 +217,15 @@ void discoverDevices() {
 
     {
       uint8_t pinstrap = 0;           // Variable to store the pinstrap (device type)
-      Wire1.beginTransmission(addr);  // Begin I2C transmission to the current address
-      Wire1.write(0x00);              // Send a request to the device (assuming 0x00 is the register for device type)
-      Wire1.endTransmission();        // End transmission
+      module.getWire()->beginTransmission(addr);  // Begin I2C transmission to the current address
+      module.getWire()->write((int8_t)0x00);              // Send a request to the device (assuming 0x00 is the register for device type)
+      module.getWire()->endTransmission();        // End transmission
 
       delay(50);  // Delay to allow for the device to respond
 
-      Wire1.requestFrom(addr, 1);  // Request 1 byte from the device at the current address
-      if (Wire1.available()) {
-        pinstrap = Wire1.read();  // Read the device type (pinstrap)
+      module.getWire()->requestFrom(addr, 1);  // Request 1 byte from the device at the current address
+      if (module.getWire()->available()) {
+        pinstrap = module.getWire()->read();  // Read the device type (pinstrap)
       } else {
         // If an error happens in the range 0x78 to 0x7F, ignore it.
         if (addr >= 0x78) continue;
