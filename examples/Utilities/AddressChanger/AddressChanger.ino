@@ -1,14 +1,14 @@
 /*
  * Modulino - Address Changer
- * 
+ *
  * This utility allows you to change the I2C addresses of Modulino modules.
  * This is essential when you want to use multiple modules of the same type
  * on the same I2C bus (e.g., multiple encoders or buttons).
- * 
+ *
  * By default, each Modulino type has a fixed default I2C address. If you connect
  * two modules of the same type, they will conflict. This tool lets you change
  * the address to avoid conflicts.
- * 
+ *
  * How to use:
  * 1. Connect the Arduino and open the Serial Monitor (115200 baud)
  * 2. The tool will show all detected Modulino devices with their addresses
@@ -17,13 +17,13 @@
  *    - "0x3E 0x3F" - Changes device at 0x3E to address 0x3F
  *    - "0x3E 0" - Resets device at 0x3E to its default address
  *    - "0 0" - Resets ALL devices to their default addresses (broadcast)
- * 
+ *
  * IMPORTANT NOTES:
  * - Valid I2C addresses range from 0x08 to 0x77
  * - Some devices have fixed addresses and cannot be changed (Distance, Thermo, Movement)
  * - The new address is stored in the module's memory permanently
  * - After changing addresses, power cycle the modules to ensure changes take effect
- * 
+ *
  * Default addresses by module type:
  * - Buzzer: 0x1E (pinstrap 0x3C)
  * - Joystick: 0x2C (pinstrap 0x58)
@@ -36,7 +36,7 @@
  * - Thermo: 0x44 (fixed, cannot change)
  * - Movement: 0x6A or 0x6B (fixed, cannot change)
  *
- * This example code is in the public domain. 
+ * This example code is in the public domain.
  * Copyright (c) 2025 Arduino
  * SPDX-License-Identifier: MPL-2.0
  */
@@ -88,7 +88,7 @@ void loop() {
     // Parse the hexadecimal strings to integer values
     int num1 = parseHex(hex1);  // Current address
     int num2 = parseHex(hex2);  // New address
-    
+
     // Validate input
     if (num1 == -1 || num2 == -1) {
       Serial.println("Error: Incomplete or invalid input. Please enter two hexadecimal numbers");
