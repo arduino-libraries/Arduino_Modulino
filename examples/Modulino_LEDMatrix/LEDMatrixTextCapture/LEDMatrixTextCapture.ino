@@ -7,7 +7,7 @@
  */
 
 #include "ArduinoGraphics.h"
-#include "Modulino_LED_Matrix.h"
+#include <Arduino_Modulino.h>
 
 ModulinoLEDMatrix matrix;
 
@@ -16,10 +16,11 @@ ModulinoLEDMatrix matrix;
 // Each frame needs space for pixels + duration.
 // For Modulino 12x8, that's 12 bytes pixels + 4 bytes duration = 16 bytes.
 constexpr size_t FRAMES = 128;
+constexpr size_t FRAME_SIZE = ModulinoLEDMatrix::MONOCHROMATIC_ANIMATION_FRAME_SIZE;
 
 // Frame buffers for the animations. This is where the captured frames will be stored.
-uint8_t animation1Buffer[FRAMES][MONOCHROMATIC_ANIMATION_FRAME_SIZE]; 
-uint8_t animation2Buffer[FRAMES][MONOCHROMATIC_ANIMATION_FRAME_SIZE];
+uint8_t animation1Buffer[FRAMES][FRAME_SIZE]; 
+uint8_t animation2Buffer[FRAMES][FRAME_SIZE];
 
 // Variables to hold the actual used size of the buffers after capturing the animations.
 // This is important because the captured animation might not use all the allocated space.
@@ -53,14 +54,14 @@ void prepareAnimations(){
   Serial.print("Remaining bytes for animation 1: ");
   Serial.println(sizeof(animation1Buffer) - animation1UsedBytes);
   Serial.print("Frames captured for animation 1: ");
-  Serial.println(animation1UsedBytes / MONOCHROMATIC_ANIMATION_FRAME_SIZE);
+  Serial.println(animation1UsedBytes / FRAME_SIZE);
   
   Serial.print("Bytes used for animation 2: ");
   Serial.println(animation2UsedBytes);
   Serial.print("Remaining bytes for animation 2: ");
   Serial.println(sizeof(animation2Buffer) - animation2UsedBytes);
   Serial.print("Frames captured for animation 2: ");
-  Serial.println(animation2UsedBytes / MONOCHROMATIC_ANIMATION_FRAME_SIZE);
+  Serial.println(animation2UsedBytes / FRAME_SIZE);
 }
 
 void setup() {

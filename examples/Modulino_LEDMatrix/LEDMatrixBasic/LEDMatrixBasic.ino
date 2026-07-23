@@ -5,7 +5,7 @@
  * Initial author: Sebastian Romero (s.romero@arduino.cc)
  */
 
-#include "Modulino_LED_Matrix.h"
+#include <Arduino_Modulino.h>
 #include "LEDMatrixGallery.h" // This header contains predefined animations for the LED matrix display.
 
 ModulinoLEDMatrix matrix;
