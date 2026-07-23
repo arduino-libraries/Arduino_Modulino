@@ -54,6 +54,7 @@ jobs:
             - name: Button2
             - name: ArduinoGraphics
             - name: Arduino_LTR381RGB
+            - name: SHT31
 
           enable-deltas-report: true
           sketches-report-path: ${{ env.SKETCHES_REPORTS_PATH }}

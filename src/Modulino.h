@@ -16,6 +16,7 @@
 #include <Arduino_LPS22HB.h>
 #include <Arduino_HS300x.h>
 #include "Arduino_LTR381RGB.h"
+#include <SHT31.h>
 #include "Arduino.h"
 //#include <SE05X.h>  // need to provide a way to change Wire object
 
@@ -610,10 +611,20 @@ public:
     if (hubPort != nullptr) {
       hubPort->select();
     }
-    if (_sensor == nullptr) {
-      _sensor = new HS300xClass(*((TwoWire*)getWire()));
+    TwoWire* wire = (TwoWire*)getWire();
+
+    wire->beginTransmission(0x44);
+    if (wire->endTransmission() != 0) {
+      if (_sensor_hs300x == nullptr) {
+        _sensor_hs300x = new HS300xClass(*wire);
+      }
+      initialized = _sensor_hs300x->begin();
+    } else {
+      if (_sensor_sht31 == nullptr) {
+        _sensor_sht31 = new SHT31(0x45, wire);
+      }
+      initialized = _sensor_sht31->begin();
     }
-    initialized = _sensor->begin();
     __increaseI2CPriority();
     if (hubPort != nullptr) {
       hubPort->clear();
@@ -623,34 +634,70 @@ public:
   operator bool() {
     return (initialized != 0);
   }
+
+  /**
+   * Get the relative humidity percentage from the sensor.
+   * @return Relative humidity percentage (0.0 to 100.0) or NAN if not initialized.
+   */
   float getHumidity() {
-    if (initialized) {
-      if (hubPort != nullptr) {
-        hubPort->select();
-      }
-      auto ret = _sensor->readHumidity();
-      if (hubPort != nullptr) {
-        hubPort->clear();
-      }
-      return ret;
+    if (!initialized) {
+      return NAN;
+    } 
+    if (hubPort != nullptr) {
+      hubPort->select();
     }
-    return 0;
+    float humidity = 0;
+    
+    if (_sensor_sht31 != nullptr) {
+      pollSHT31Sensor();
+      humidity = _sensor_sht31->getHumidity();
+    } else if (_sensor_hs300x != nullptr) {
+      humidity = _sensor_hs300x->readHumidity();
+    }
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
+    return humidity;
   }
+
+  /**
+   * Get the temperature from the sensor.
+   * @return Temperature in degrees Celsius or NAN if not initialized.
+   */
   float getTemperature() {
-    if (initialized) {
-      if (hubPort != nullptr) {
-        hubPort->select();
-      }
-      auto ret = _sensor->readTemperature();
-      if (hubPort != nullptr) {
-        hubPort->clear();
-      }
-      return ret;
+    if (!initialized) {
+      return NAN;
     }
-    return 0;
+
+    if (hubPort != nullptr) {
+      hubPort->select();
+    }
+    float ret = 0;
+    if (_sensor_sht31 != nullptr) {
+      pollSHT31Sensor();
+      ret = _sensor_sht31->getTemperature();
+    } else if (_sensor_hs300x != nullptr) {
+      ret = _sensor_hs300x->readTemperature();
+    }
+    if (hubPort != nullptr) {
+      hubPort->clear();
+    }
+    return ret;
   }
+
 private:
-  HS300xClass* _sensor = nullptr;
+  // Reads are cached for 1 second so calling getTemperature() and getHumidity()
+  // back to back doesn't trigger two blocking I2C transactions.
+  void pollSHT31Sensor() {
+    auto now = millis();
+    if (_lastSHT31Update == 0 || now - _lastSHT31Update >= 1000) {
+      _sensor_sht31->read();
+      _lastSHT31Update = now;
+    }
+  }
+  HS300xClass* _sensor_hs300x = nullptr;
+  SHT31* _sensor_sht31 = nullptr;
+  uint32_t _lastSHT31Update = 0;
   int initialized = 0;
 };
 
