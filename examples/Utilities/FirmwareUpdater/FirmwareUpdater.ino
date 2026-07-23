@@ -15,7 +15,7 @@
  * 5. Wait for the update to complete before disconnecting
  * 
  * Special case for LED Matrix:
- * - Set force_led_matrix = true if programming a blank LED Matrix module
+ * - Connect only the LED Matrix and answer "y" when prompted
  * 
  * NOTE: This uses the STM32 bootloader protocol to flash firmware.
  * Do not disconnect power during the update process.
@@ -34,329 +34,279 @@
 #endif
 
 #include <Arduino_Modulino.h>
-#include "Wire.h"
+#include <ModulinoScanner.h>
+#include <ModulinoFlasher.h>
 #include "fw.h"
 #include "fw_ledmatrix.h"
-#include "fw_motors.h"
+#include <fw_motors.h>
 
-// Reference: STM32 I2C bootloader protocol documentation
-// https://www.st.com/resource/en/application_note/an4221-i2c-protocol-used-in-the-stm32-bootloader-stmicroelectronics.pdf
+// --- Firmware Registry ---
 
-bool flash(const uint8_t* binary, size_t lenght, bool verbose = true);
-Module modulino;
-
-// Change this to true if programming a blank Modulino LED Matrix
-// For all other modules, keep this false
-bool force_led_matrix = false;
-
-// Force motors firmware
-// Set this to true if you want to flash the motors firmware regardless of the detected module type
-bool force_motors = false;
-
-void setup() {
-  Serial.begin(115200);
-  // Initialize Modulino communication
-  Modulino.begin();
-  // Set I2C clock to 400kHz for faster communication
-  modulino.getWire()->setClock(400000);
-
-  // Check if module is already in bootloader mode (address 0x64)
-  modulino.getWire()->beginTransmission(0x64);
-  auto is_boot_mode = (modulino.getWire()->endTransmission() == 0);
-
-  if (is_boot_mode) {
-    Serial.println("Device alrady in bootloader mode. Waiting...");
-    // Probing the address causes a reset when in bootloader
-    delay(6500); // Give the device time to reset
-  }
-
-  bool is_led_matrix = false;
-  bool is_motors = false;
-
-  // Send reset command to module if not already in boot mode
-  // IMPORTANT: Connect only ONE module at a time
-  if (!is_boot_mode) {
-    // Check if connected module is an LED matrix (address 0x39)
-    modulino.getWire()->beginTransmission(0x39);
-    is_led_matrix = (modulino.getWire()->endTransmission() == 0);
-
-    // Check if connected module is Motors (address 0x48)
-    if (!is_led_matrix) {
-      modulino.getWire()->beginTransmission(0x48);
-      is_motors = (modulino.getWire()->endTransmission() == 0);
-    }
-
-    if (is_led_matrix) {
-      Serial.println("led matrix mode");
-    }
-    if (is_motors) {
-      Serial.println("motors mode");
-    }
-
-    // Send reset command to enter bootloader mode
-    if (sendReset() != 0) {
-      Serial.println("Send reset failed");
-    }
-  }
-
-  // Flash the appropriate firmware based on module type
-  bool result;
-  if (is_led_matrix || force_led_matrix) {
-    // Flash LED Matrix firmware
-    result = flash(matrix_node_base_bin, matrix_node_base_bin_len);
-  } else if (is_motors || force_motors) {
-    // Flash Motors firmware
-    result = flash(motors_node_base_bin, motors_node_base_bin_len);
-  } else {
-    // Flash standard Modulino firmware
-    result = flash(node_base_bin, node_base_bin_len);
-  }
-
-#if defined(ARDUINO_UNOWIFIR4)
-  // Display result on UNO R4 WiFi LED matrix
-  if (result) {
-    matrixInitAndDraw("PASS");
-  } else {
-    matrixInitAndDraw("FAIL");
-  }
-#endif
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-class SerialVerbose {
-public:
-  SerialVerbose(bool verbose)
-    : _verbose(verbose) {}
-  int print(String s) {
-    if (_verbose) {
-      Serial.print(s);
-    }
-  }
-  int println(String s) {
-    if (_verbose) {
-      Serial.println(s);
-    }
-  }
-  int println(int num, int base) {
-    if (_verbose) {
-      Serial.println(num, base);
-    }
-  }
-private:
-  bool _verbose;
+struct FirmwareDescriptor {
+  ModulinoFirmware type;
+  const char* name;
+  const unsigned char* binData;
+  unsigned int binLen;
 };
+
+const FirmwareDescriptor FIRMWARES[] = {
+  { FIRMWARE_GENERIC,    "Generic (Buzzer, Buttons, Encoder, ...)", node_base_bin,        node_base_bin_len },
+  { FIRMWARE_MOTORS,     "Motors",                                  motors_node_base_bin, motors_node_base_bin_len },
+  { FIRMWARE_LED_MATRIX, "LED Matrix",                              matrix_node_base_bin, matrix_node_base_bin_len }
+};
+const size_t NUM_FIRMWARES = sizeof(FIRMWARES) / sizeof(FIRMWARES[0]);
+
+// --- Objects ---
+Module modulino;
+ModulinoScanner scanner;
+ModulinoFlasher flasher(modulino);
+
+// --- State machine ---
+enum State {
+  INIT,
+  SCAN_DEVICES,
+  WAIT_USER_CHOICE,
+  WAIT_BOOT_MODE_CHOICE,
+  FLASHING,
+  DONE
+};
+
+State state = INIT;
+int selectedAddress  = -1;
+ModulinoFirmware firmwareType = FIRMWARE_GENERIC;
+
+// --- UNO R4 WiFi LED matrix helpers ---
 
 #if defined(ARDUINO_UNOWIFIR4)
 ArduinoLEDMatrix matrix;
 
-void matrixInitAndDraw(char* text) {
+/**
+ * @brief Renders a progress bar on the UNO R4 WiFi LED matrix.
+ *
+ * Lights a proportional number of the 96 LEDs (8 rows x 12 columns),
+ * filling left-to-right, top-to-bottom.
+ *
+ * @param progress Number of completed pages.
+ * @param total    Total number of pages.
+ */
+void updateProgressMatrix(int progress, int total) {
+  uint32_t frame[3] = {0, 0, 0};
+  int numLeds = (progress * 96) / total;
+  for (int i = 0; i < numLeds; i++) {
+    int row = i / 12;
+    int col = 11 - (i % 12);
+    frame[row / 4] |= (1 << (col + (3 - (row % 4)) * 12));
+  }
+  matrix.loadFrame(frame);
+}
+
+/**
+ * @brief Initialises the UNO R4 WiFi LED matrix and renders a short status string.
+ *
+ * Uses the 4x6 pixel font. Intended for "PASS" or "FAIL" messages.
+ * @param text Null-terminated string to display.
+ */
+void matrixInitAndDraw(const char* text) {
   matrix.begin();
   matrix.beginDraw();
-
   matrix.stroke(0xFFFFFFFF);
   matrix.textFont(Font_4x6);
   matrix.beginText(0, 1, 0xFFFFFF);
   matrix.println(text);
   matrix.endText();
-
   matrix.endDraw();
 }
+#else
+void updateProgressMatrix(int progress, int total) {}
+void matrixInitAndDraw(const char* text) {}
 #endif
 
-bool flash(const uint8_t* binary, size_t lenght, bool verbose) {
+// --- State Handlers ---
 
-  SerialVerbose SerialDebug(verbose);
-
-  uint8_t resp_buf[255];
-  int resp;
-  SerialDebug.println("GET_COMMAND");
-  resp = command(0, nullptr, 0, resp_buf, 20, verbose);
-
-  if (resp < 0) {
-    SerialDebug.println("Failed :(");
-    return false;
+void handleInit() {
+  if (Serial) {
+    state = SCAN_DEVICES;
   }
-
-  for (int i = 0; i < resp; i++) {
-    SerialDebug.println(resp_buf[i], HEX);
-  }
-
-  SerialDebug.println("GET_ID");
-  resp = command(2, nullptr, 0, resp_buf, 3, verbose);
-  for (int i = 0; i < resp; i++) {
-    SerialDebug.println(resp_buf[i], HEX);
-  }
-
-  SerialDebug.println("GET_ID");
-  resp = command(2, nullptr, 0, resp_buf, 3, verbose);
-  for (int i = 0; i < resp; i++) {
-    SerialDebug.println(resp_buf[i], HEX);
-  }
-
-  SerialDebug.println("MASS_ERASE");
-  uint8_t erase_buf[3] = { 0xFF, 0xFF, 0x0 };
-  resp = command(0x44, erase_buf, 3, nullptr, 0, verbose);
-  for (int i = 0; i < resp; i++) {
-    SerialDebug.println(resp_buf[i], HEX);
-  }
-
-  int lenght_mod128 = ((lenght + 128) / 128) * 128;
-  for (int i = lenght_mod128; i >= 0; i -= 128) {
-    SerialDebug.print("WRITE_PAGE ");
-    SerialDebug.println(i, HEX);
-    uint8_t write_buf[5] = { 8, 0, i / 256, i % 256 };
-    resp = command_write_page(0x32, write_buf, 5, &binary[i], 128, verbose);
-    for (int i = 0; i < resp; i++) {
-      SerialDebug.println(resp_buf[i], HEX);
-    }
-    delay(10);
-  }
-  SerialDebug.println("GO");
-  uint8_t jump_buf[5] = { 0x8, 0x00, 0x00, 0x00, 0x8 };
-  resp = command(0x21, jump_buf, 5, nullptr, 0, verbose);
-  return true;
 }
 
-int howmany;
-int command_write_page(uint8_t opcode, uint8_t* buf_cmd, size_t len_cmd, const uint8_t* buf_fw, size_t len_fw, bool verbose) {
+void handleScanDevices() {
+  // Check whether a device is already waiting in bootloader mode.
+  if (scanner.deviceInBootloaderMode()) {
+    Serial.println("A Modulino device was detected in bootloader mode.");
+    Serial.println("Which firmware to flash?");
+    for (size_t i = 0; i < NUM_FIRMWARES; i++) {
+      Serial.print("  [");
+      Serial.print(i + 1);
+      Serial.print("] ");
+      Serial.println(FIRMWARES[i].name);
+    }
+    state = WAIT_BOOT_MODE_CHOICE;
+  } else {
+    Serial.println("\nScanning for connected Modulino devices...");
+    scanner.discover();
 
-  SerialVerbose SerialDebug(verbose);
-
-  uint8_t cmd[2];
-  cmd[0] = opcode;
-  cmd[1] = 0xFF ^ opcode;
-  modulino.getWire()->beginTransmission(100);
-  modulino.getWire()->write(cmd, 2);
-  if (len_cmd > 0) {
-    buf_cmd[len_cmd - 1] = 0;
-    for (int i = 0; i < len_cmd - 1; i++) {
-      buf_cmd[len_cmd - 1] ^= buf_cmd[i];
-    }
-    modulino.getWire()->endTransmission(true);
-    modulino.getWire()->requestFrom(100, 1);
-    auto c = modulino.getWire()->read();
-    if (c != 0x79) {
-      SerialDebug.print("error first ack: ");
-      SerialDebug.println(c, HEX);
-      return -1;
-    }
-    modulino.getWire()->beginTransmission(100);
-    modulino.getWire()->write(buf_cmd, len_cmd);
-  }
-  modulino.getWire()->endTransmission(true);
-  modulino.getWire()->requestFrom(100, 1);
-  auto c = modulino.getWire()->read();
-  if (c != 0x79) {
-    while (c == 0x76) {
-      delay(10);
-      modulino.getWire()->requestFrom(100, 1);
-      c = modulino.getWire()->read();
-    }
-    if (c != 0x79) {
-      SerialDebug.print("error second ack: ");
-      SerialDebug.println(c, HEX);
-      return -1;
+    if (scanner.numDevices == 0) {
+      Serial.println("No configurable Modulinos found.");
+      delay(2000);
+      state = SCAN_DEVICES;
+    } else {
+      scanner.printDevices(true);
+      if (scanner.numDevices == 1) {
+        Serial.println("\nProceed with flashing this device? [y/n]");
+      } else {
+        Serial.print("\nEnter the number of the Modulino to flash (1-");
+        Serial.print(scanner.numDevices);
+        Serial.println("):");
+      }
+      state = WAIT_USER_CHOICE;
     }
   }
-  uint8_t tmpbuf[len_fw + 2] = { len_fw - 1 };
-  memcpy(&tmpbuf[1], buf_fw, len_fw);
-  for (int i = 0; i < len_fw + 1; i++) {
-    tmpbuf[len_fw + 1] ^= tmpbuf[i];
-  }
-  modulino.getWire()->beginTransmission(100);
-  modulino.getWire()->write(tmpbuf, len_fw + 2);
-  modulino.getWire()->endTransmission(true);
-  modulino.getWire()->requestFrom(100, 1);
-  c = modulino.getWire()->read();
-  if (c != 0x79) {
-    while (c == 0x76) {
-      delay(10);
-      modulino.getWire()->requestFrom(100, 1);
-      c = modulino.getWire()->read();
-    }
-    if (c != 0x79) {
-      SerialDebug.print("error: ");
-      SerialDebug.println(c, HEX);
-      return -1;
-    }
-  }
-final_ack:
-  return howmany + 1;
 }
 
-int command(uint8_t opcode, uint8_t* buf_cmd, size_t len_cmd, uint8_t* buf_resp, size_t len_resp, bool verbose) {
-
-  SerialVerbose SerialDebug(verbose);
-
-  uint8_t cmd[2];
-  cmd[0] = opcode;
-  cmd[1] = 0xFF ^ opcode;
-  modulino.getWire()->beginTransmission(100);
-  modulino.getWire()->write(cmd, 2);
-  if (len_cmd > 0) {
-    modulino.getWire()->endTransmission(true);
-    modulino.getWire()->requestFrom(100, 1);
-    auto c = modulino.getWire()->read();
-    if (c != 0x79) {
-      Serial.print("error first ack: ");
-      Serial.println(c, HEX);
-      return -1;
+void handleWaitBootModeChoice() {
+  if (Serial.available() > 0) {
+    String inputStr = Serial.readStringUntil('\n');
+    inputStr.trim();
+    if (inputStr.length() == 0) return;
+    
+    int choice = inputStr.toInt();
+    bool found = false;
+    
+    // Check if the choice is valid (1 to NUM_FIRMWARES)
+    if (choice >= 1 && choice <= (int)NUM_FIRMWARES) {
+      firmwareType = FIRMWARES[choice - 1].type;
+      found = true;
     }
-    modulino.getWire()->beginTransmission(100);
-    modulino.getWire()->write(buf_cmd, len_cmd);
-  }
-  modulino.getWire()->endTransmission(true);
-  modulino.getWire()->requestFrom(100, 1);
-  auto c = modulino.getWire()->read();
-  if (c != 0x79) {
-    while (c == 0x76) {
-      delay(100);
-      modulino.getWire()->requestFrom(100, 1);
-      c = modulino.getWire()->read();
-      SerialDebug.println("retry");
+    
+    if (!found) {
+      // Fallback to first firmware (generic) if input is invalid but not empty
+      firmwareType = FIRMWARES[0].type;
     }
-    if (c != 0x79) {
-      SerialDebug.print("error second ack: ");
-      SerialDebug.println(c, HEX);
-      return -1;
-    }
+    state = FLASHING;
   }
-  int howmany = -1;
-  if (len_resp == 0) {
-    goto final_ack;
-  }
-  modulino.getWire()->requestFrom(100, len_resp);
-  howmany = modulino.getWire()->read();
-  for (int j = 0; j < howmany + 1; j++) {
-    buf_resp[j] = modulino.getWire()->read();
-  }
-
-  modulino.getWire()->requestFrom(100, 1);
-  c = modulino.getWire()->read();
-  if (c != 0x79) {
-    SerialDebug.print("error: ");
-    SerialDebug.println(c, HEX);
-    return -1;
-  }
-final_ack:
-  return howmany + 1;
 }
 
-int sendReset() {
-  uint8_t buf[3] = { 'D', 'I', 'E' };
-  int ret;
-  for (int i = 0; i < 0x78; i++) {
-    modulino.getWire()->beginTransmission(i);
-    ret = modulino.getWire()->endTransmission();
-    if (ret != 2) {
-      modulino.getWire()->beginTransmission(i);
-      modulino.getWire()->write(buf, 40);
-      ret = modulino.getWire()->endTransmission();
-      return ret;
+void handleWaitUserChoice() {
+  if (Serial.available() > 0) {
+    String inputStr = Serial.readStringUntil('\n');
+    inputStr.trim();
+    if (inputStr.length() == 0) return;
+
+    const DetectedModulino* device = nullptr;
+
+    if (scanner.numDevices == 1) {
+      if (inputStr != "y" && inputStr != "Y") {
+        Serial.println("Aborted. Rescanning...");
+        delay(1000);
+        state = SCAN_DEVICES;
+        return;
+      }
+      device = &scanner.devices[0];
+    } else {
+      int index = inputStr.toInt() - 1;
+      if (index < 0 || index >= scanner.numDevices) {
+        Serial.print("Invalid selection. Enter a number between 1 and ");
+        Serial.print(scanner.numDevices);
+        Serial.println(":");
+        return;
+      }
+      device = &scanner.devices[index];
+    }
+
+    selectedAddress = device->addr;
+    Serial.print("Sending reset to device 0x");
+    Serial.println(selectedAddress, HEX);
+
+    // Look up firmware type directly from the device registry.
+    firmwareType = modulinoFirmwareForPinstrap(device->pinstrapValue);
+
+    if (flasher.enterBootloader((uint8_t)selectedAddress)) {
+      delay(250);
+      state = FLASHING;
+    } else {
+      Serial.println("Failed to send reset command to the device.");
+      state = SCAN_DEVICES;
     }
   }
-  return ret;
+}
+
+void handleFlashing() {
+  // The STM32 bootloader takes ~6500 ms to reboot after being contacted.
+  // Wait for the remaining time so the flash commands arrive when it is ready.
+  unsigned long waitMs = scanner.bootloaderReadyIn();
+  if (waitMs > 0) {
+    Serial.print("Waiting for bootloader to be ready (");
+    Serial.print(waitMs);
+    Serial.println(" ms)...");
+    delay(waitMs);
+  }
+
+  Serial.println("\nStarting firmware update...");
+
+  const FirmwareDescriptor* fw = nullptr;
+  for (size_t i = 0; i < NUM_FIRMWARES; i++) {
+    if (FIRMWARES[i].type == firmwareType) {
+      fw = &FIRMWARES[i];
+      break;
+    }
+  }
+
+  // Fallback to first firmware if type somehow not found
+  if (fw == nullptr) fw = &FIRMWARES[0];
+
+  Serial.print("Flashing Modulino ");
+  Serial.print(fw->name);
+  Serial.println(" Firmware...");
+
+  bool result = flasher.flash(fw->binData, fw->binLen, false, updateProgressMatrix);
+
+  if (result) {
+    Serial.println("\nFirmware update completed SUCCESSFULLY!");
+    matrixInitAndDraw("PASS");
+  } else {
+    Serial.println("\nFirmware update FAILED.");
+    matrixInitAndDraw("FAIL");
+  }
+  state = DONE;
+}
+
+void handleDone() {
+  /* Wait for the user to reset the board. */
+  delay(1000);
+}
+
+// --- Arduino entry points ---
+
+/**
+ * @brief Arduino setup routine.
+ *
+ * Initialises Serial, the Modulino I2C bus at 400 kHz, and (on UNO R4 WiFi)
+ * the on-board LED matrix. Sets the state machine to INIT.
+ */
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+  delay(100);  // allow Serial to stabilise
+  Modulino.begin();
+  scanner.begin(*modulino.getWire());
+
+#if defined(ARDUINO_UNOWIFIR4)
+  matrix.begin();
+#endif
+
+  state = INIT;
+}
+
+/**
+ * @brief Arduino main loop - drives the firmware-update state machine.
+ */
+void loop() {
+  switch (state) {
+    case INIT:                  handleInit(); break;
+    case SCAN_DEVICES:          handleScanDevices(); break;
+    case WAIT_BOOT_MODE_CHOICE: handleWaitBootModeChoice(); break;
+    case WAIT_USER_CHOICE:      handleWaitUserChoice(); break;
+    case FLASHING:              handleFlashing(); break;
+    case DONE:                  handleDone(); break;
+  }
 }
