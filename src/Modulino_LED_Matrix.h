@@ -8,7 +8,7 @@
 #define MATRIX_WITH_ARDUINOGRAPHICS
 #endif
 
-#if defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_NANO_R4) || defined(ARDUINO_UNO_Q)
+#if defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_NANO_R4) || defined(ARDUINO_UNO_Q) || defined(ARDUINO_VENTUNO_Q)
 #define DEFAULT_WIRE Wire1
 #else
 #define DEFAULT_WIRE Wire
