@@ -13,8 +13,7 @@
   This example code is in the public domain.
 */
 
-#include "Modulino.h"
-#include "Modulino_LED_Matrix.h"
+#include <Arduino_Modulino.h>
 #include "LEDMatrixGallery.h"
 
 ModulinoLEDMatrix matrix;
