@@ -8,6 +8,3 @@ A Modulino® is a compact, modular electronic device that connects easily to Ard
 
 ## Hardware Compatibility
 This library is compatible with all Arduino boards that feature an I2C interface (`Wire`).
-
-## Support and Contributions
-If you find this library helpful, consider supporting us through [donations](https://www.arduino.cc/en/donate/), [sponsorship](https://github.com/sponsors/arduino) or check out our [store](https://store.arduino.cc/).
