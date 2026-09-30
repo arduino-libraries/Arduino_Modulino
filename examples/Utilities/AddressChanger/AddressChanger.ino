@@ -53,7 +53,7 @@ constexpr unsigned long ADDRESS_CHANGE_APPLY_DELAY_MS = 500;  ///< Time for a mo
 
 // --- Serial / scan timing ---
 constexpr unsigned long SERIAL_BAUD_RATE          = 115200;
-constexpr unsigned long SERIAL_STABILIZE_DELAY_MS = 100;
+constexpr unsigned long SERIAL_STABILIZE_DELAY_MS = 1000;
 constexpr unsigned long NO_DEVICES_RETRY_DELAY_MS = 2000;
 
 // --- Objects ---
@@ -200,9 +200,12 @@ void handleApplyAddressChange() {
   bool isBroadcast = (selectedDeviceIndex == -1);
 
   Serial.print("Updating ");
-  Serial.print(isBroadcast ? "all devices (broadcast)" : "the device");
-  Serial.print(" to address 0x");
-  Serial.print(targetAddress, HEX);
+  if (isBroadcast) {
+    Serial.print("all devices (broadcast)");
+  } else {
+    Serial.print("the device to address 0x");
+    Serial.print(targetAddress, HEX);
+  }
   Serial.print("...");
 
   sendAddressChangeCommand(sourceAddress, targetAddress);
@@ -278,7 +281,6 @@ int parseHexAddress(String hexStr) {
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
-  while (!Serial) {}
   delay(SERIAL_STABILIZE_DELAY_MS);  // Allow serial port to stabilize.
 
   Modulino.begin();
