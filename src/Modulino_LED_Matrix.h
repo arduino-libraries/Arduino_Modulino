@@ -1,5 +1,14 @@
 #pragma once
 
+// Fix compiler errors when compiling this 
+// together with "Arduino_LED_Matrix.h"
+// as that header uses precompiler macros that 
+// rewrite function names globally.
+#undef loadSequence
+#undef renderBitmap
+#undef endTextAnimation
+#undef loadTextAnimationSequence
+
 #include "Arduino.h"
 #include "Wire.h"
 
@@ -14,21 +23,11 @@
 #define DEFAULT_WIRE Wire
 #endif
 
-constexpr uint8_t NUM_LEDS = 96;
-constexpr uint8_t DEFAULT_ADDRESS = 0x39;
-constexpr uint8_t GRAYSCALE_FRAME_SIZE = 48;
-constexpr uint8_t MONOCHROMATIC_FRAME_SIZE = 12;
-constexpr size_t DURATION_SIZE = sizeof(uint32_t);
-constexpr size_t MONOCHROMATIC_ANIMATION_FRAME_SIZE = MONOCHROMATIC_FRAME_SIZE + DURATION_SIZE;
-constexpr char GRAYSCALE_IDENTIFIER[] = "GS4";
-constexpr char MONOCHROMATIC_IDENTIFIER[] = "MON";
-constexpr uint8_t MODE_IDENTIFIER_SIZE = 3;
-
 enum class DisplayMode {
     MonochromaticVertical,
     MonochromaticHorizontal,
     Grayscale,
-    Default = MonochromaticVertical
+    Default = MonochromaticHorizontal
 };
 
 class ModulinoLEDMatrix
@@ -38,6 +37,15 @@ class ModulinoLEDMatrix
      {
 
 public:
+    static constexpr uint8_t DEFAULT_ADDRESS = 0x39;
+    static constexpr uint8_t GRAYSCALE_FRAME_SIZE = 48;
+    static constexpr uint8_t MONOCHROMATIC_FRAME_SIZE = 12;
+    static constexpr size_t DURATION_SIZE = sizeof(uint32_t);
+    static constexpr size_t MONOCHROMATIC_ANIMATION_FRAME_SIZE = MONOCHROMATIC_FRAME_SIZE + DURATION_SIZE;
+    static constexpr char GRAYSCALE_IDENTIFIER[] = "GS4";
+    static constexpr char MONOCHROMATIC_IDENTIFIER[] = "MON";
+    static constexpr uint8_t MODE_IDENTIFIER_SIZE = 3;
+
     ModulinoLEDMatrix(uint8_t address = DEFAULT_ADDRESS, HardwareI2C& wire = DEFAULT_WIRE, DisplayMode mode = DisplayMode::Default)
     #ifdef MATRIX_WITH_ARDUINOGRAPHICS
         : ArduinoGraphics(canvasWidth, canvasHeight)
