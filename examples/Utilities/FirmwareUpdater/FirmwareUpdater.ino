@@ -93,9 +93,9 @@ void updateProgressMatrix(int progress, int total) {
   uint32_t frame[3] = {0, 0, 0};
   int numLeds = (progress * 96) / total;
   for (int i = 0; i < numLeds; i++) {
-    int row = i / 12;
-    int col = 11 - (i % 12);
-    frame[row / 4] |= (1 << (col + (3 - (row % 4)) * 12));
+    int word = i / 32;
+    int bit = 31 - (i % 32);
+    frame[word] |= (1UL << bit);
   }
   matrix.loadFrame(frame);
 }
