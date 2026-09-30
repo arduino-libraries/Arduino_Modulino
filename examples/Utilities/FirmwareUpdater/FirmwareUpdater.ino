@@ -170,18 +170,14 @@ void handleWaitBootModeChoice() {
     if (inputStr.length() == 0) return;
     
     int choice = inputStr.toInt();
-    bool found = false;
-    
-    // Check if the choice is valid (1 to NUM_FIRMWARES)
-    if (choice >= 1 && choice <= (int)NUM_FIRMWARES) {
-      firmwareType = FIRMWARES[choice - 1].type;
-      found = true;
+    if (choice < 1 || choice > (int)NUM_FIRMWARES) {
+      Serial.print("Invalid selection. Enter a number between 1 and ");
+      Serial.print(NUM_FIRMWARES);
+      Serial.println(":");
+      return;
     }
-    
-    if (!found) {
-      // Fallback to first firmware (generic) if input is invalid but not empty
-      firmwareType = FIRMWARES[0].type;
-    }
+
+    firmwareType = FIRMWARES[choice - 1].type;
     state = FLASHING;
   }
 }
