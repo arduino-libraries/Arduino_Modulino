@@ -8,12 +8,15 @@
  * restore a module to working condition.
  * 
  * Instructions:
- * 1. Connect ONLY ONE Modulino module at a time
- * 2. Upload this sketch to your Arduino
- * 3. The sketch will automatically detect and flash the appropriate firmware
- * 4. On UNO R4 WiFi, the LED matrix will show "PASS" or "FAIL" when done
- * 5. Wait for the update to complete before disconnecting
- * 
+ * 1. Connect Modulino Nodes you wish to update to your Arduino
+ * 2. Open Serial Monitor
+ * 3. Select "115200" from the baud rate menu in Serial Monitor
+ * 4. Upload this sketch to your Arduino
+ * 5. You should see a prompt in Serial Monitor. Type the appropriate response in the "Message" field and press the Enter key.
+ * 6. The sketch will automatically detect and flash the appropriate firmware
+ * 7. On UNO R4 WiFi, the LED matrix will show "PASS" or "FAIL" when done
+ * 8. Wait for the update to complete before disconnecting
+ *
  * Special case for LED Matrix:
  * - Connect only the LED Matrix and answer "y" when prompted
  * 
