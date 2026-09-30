@@ -9,6 +9,7 @@
   #error "Learn more at: https://support.arduino.cc/hc/en-us/articles/10483225565980-Select-pin-numbering-for-Nano-ESP32-in-Arduino-IDE"
 #endif
 
+#include "Arduino.h"
 #include "Wire.h"
 #include <vl53l4cd_class.h>  // from stm32duino
 #include <vl53l4ed_class.h>  // from stm32duino
@@ -16,8 +17,8 @@
 #include <Arduino_LPS22HB.h>
 #include <Arduino_HS300x.h>
 #include "Arduino_LTR381RGB.h"
-#include "Arduino.h"
 //#include <SE05X.h>  // need to provide a way to change Wire object
+#include "Modulino_LED_Matrix.h"
 
 #ifndef ARDUINO_API_VERSION
 #define PinStatus     uint8_t

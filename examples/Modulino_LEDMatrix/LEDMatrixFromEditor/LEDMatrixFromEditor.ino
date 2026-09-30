@@ -6,7 +6,7 @@
  * Initial author: Sebastian Romero (s.romero@arduino.cc)
  */
 
-#include "Modulino_LED_Matrix.h"
+#include <Arduino_Modulino.h>
 #include "animation.h"
 
 ModulinoLEDMatrix matrix;

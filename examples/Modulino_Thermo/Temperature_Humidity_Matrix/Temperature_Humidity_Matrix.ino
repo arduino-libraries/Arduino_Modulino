@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-#include <Arduino_Modulino.h>
 #include "ArduinoGraphics.h"
+#include <Arduino_Modulino.h>
 #include "Arduino_LED_Matrix.h"
 
 // Create a ModulinoThermo object

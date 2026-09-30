@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _LEDMATRIX_GALLERY_H_
+#define _LEDMATRIX_GALLERY_H_
 
 constexpr uint32_t LEDMATRIX_BLUETOOTH[3] = { 0x00181492, 0x54381038, 0x54921418 };
 
@@ -633,3 +634,5 @@ constexpr uint32_t LEDMATRIX_ANIMATION_HOURGLASS[][4] = {
     { 0xff818142, 0x423c3c7e, 0x7effffff, 50 },
     { 0xff818142, 0x42243c7e, 0x7effffff, 300 },
 };
+
+#endif // _LEDMATRIX_GALLERY_H_
