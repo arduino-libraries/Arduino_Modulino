@@ -284,8 +284,7 @@ void handleDone() {
  */
 void setup() {
   Serial.begin(115200);
-  while (!Serial);
-  delay(100);  // allow Serial to stabilise
+  delay(1000);  // allow Serial to stabilise
   Modulino.begin();
   scanner.begin(*modulino.getWire());
 
