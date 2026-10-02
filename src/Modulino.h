@@ -133,20 +133,13 @@ public:
     if (hubPort != nullptr) {
       hubPort->select();
     }
-    Modulino._wire->requestFrom(address, howmany + 1);
-    auto start = millis();
-    while ((Modulino._wire->available() == 0) && (millis() - start < 100)) {
-      delay(1);
-    }
-    if (Modulino._wire->available() < howmany) {
+    auto received = Modulino._wire->requestFrom(address, howmany + 1);
+    if (received < howmany + 1) {
       return false;
     }
     pinstrap_address = Modulino._wire->read();
     for (int i = 0; i < howmany; i++) {
       buf[i] = Modulino._wire->read();
-    }
-    while (Modulino._wire->available()) {
-      Modulino._wire->read();
     }
     if (hubPort != nullptr) {
       hubPort->clear();
