@@ -61,6 +61,7 @@ static const ModulinoEntry MODULINO_MAP[] = {
   // --- Fixed-address devices (pinstrap == 0) ---
   { 0x29, 0x00, "Distance",    FIRMWARE_GENERIC    },
   { 0x44, 0x00, "Thermo",      FIRMWARE_GENERIC    },
+  { 0x53, 0x00, "Light",       FIRMWARE_GENERIC    },
   { 0x64, 0x00, "Bootloader",  FIRMWARE_GENERIC    },
   { 0x6A, 0x00, "Movement",    FIRMWARE_GENERIC    },
   { 0x6B, 0x00, "Movement",    FIRMWARE_GENERIC    },
