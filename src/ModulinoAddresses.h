@@ -85,7 +85,8 @@ static constexpr uint8_t MODULINO_BOOTLOADER_ADDR = 0x64;
  */
 inline String modulinoPinstrapToName(uint8_t pinstrap) {
   for (size_t i = 0; i < MODULINO_MAP_SIZE; i++) {
-    if (MODULINO_MAP[i].pinstrap == pinstrap) return String(MODULINO_MAP[i].name);
+    // Pinstrap 0 marks fixed-address entries and must never match a read pinstrap byte.
+    if (MODULINO_MAP[i].pinstrap != 0 && MODULINO_MAP[i].pinstrap == pinstrap) return String(MODULINO_MAP[i].name);
   }
   return "UNKNOWN";
 }

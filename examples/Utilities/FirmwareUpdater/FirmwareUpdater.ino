@@ -110,7 +110,7 @@ void updateProgressMatrix(int progress, int total) {
  * @param text Null-terminated string to display.
  */
 void matrixInitAndDraw(const char* text) {
-  matrix.begin();
+  matrix.clear();
   matrix.beginDraw();
   matrix.stroke(0xFFFFFFFF);
   matrix.textFont(Font_4x6);
@@ -210,6 +210,13 @@ void handleWaitUserChoice() {
         return;
       }
       device = &scanner.devices[index];
+    }
+
+    if (device->isFixed) {
+      Serial.println("That device has a fixed address and its firmware cannot be updated.");
+      // With a single device there is nothing else to choose, so rescan instead of reprompting.
+      if (scanner.numDevices == 1) state = SCAN_DEVICES;
+      return;
     }
 
     selectedAddress = device->addr;
