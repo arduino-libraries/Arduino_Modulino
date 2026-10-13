@@ -24,7 +24,7 @@
  * - HVAC systems
  *
  * This example code is in the public domain.
- * Copyright (c) 2025 Arduino
+ * Copyright (C) Arduino s.r.l. and/or its affiliated companies
  * SPDX-License-Identifier: MPL-2.0
  */
 
@@ -35,11 +35,16 @@ ModulinoThermo thermo;
 
 void setup(){
   Serial.begin(9600);
+  while (!Serial) {};  // Wait for serial port to initialize
+  delay(500); 
 
   // Initialize Modulino I2C communication
   Modulino.begin();
   // Detect and connect to temperature/humidity sensor module
-  thermo.begin();
+  if(!thermo.begin()) {
+    Serial.println("Failed to initialize Modulino Thermo sensor!");
+    while(1); // Halt execution if sensor initialization fails
+  }
 }
 
 void loop(){
@@ -65,5 +70,5 @@ void loop(){
   // Print relative humidity percentage
   Serial.print("Humidity (rH) is: ");
   Serial.println(humidity);
-
+  delay(1000);  // Wait for 1 second before next reading
 }
