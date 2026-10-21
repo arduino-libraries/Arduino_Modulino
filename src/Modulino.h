@@ -25,6 +25,8 @@
 #define HardwareI2C   TwoWire
 #endif
 
+#define MODULINO_HUB_PORT_COUNT 8
+
 typedef enum {
   STOP = 0,
   GENTLE = 25,
@@ -76,6 +78,8 @@ class ModulinoHubPort {
     int select();
     int clear();
   private:
+    ~ModulinoHubPort() {}
+    friend class ModulinoHub;
     int _port;
     ModulinoHub* _hub;
 };
@@ -83,9 +87,38 @@ class ModulinoHubPort {
 class ModulinoHub {
   public:
     ModulinoHub(int address = 0x70) : _address(address){  }
-    ModulinoHubPort* port(int _port) {
-      return new ModulinoHubPort(_port, this);
+
+    ~ModulinoHub() {
+      for (int i = 0; i < MODULINO_HUB_PORT_COUNT; i++) {
+        if (_ports[i] != nullptr) {
+          delete _ports[i];
+        }
+      }
     }
+
+    ModulinoHub(const ModulinoHub&) = delete;
+    ModulinoHub& operator=(const ModulinoHub&) = delete;
+
+    ModulinoHubPort* port(int _port) {
+      if (_port < 0 || _port >= MODULINO_HUB_PORT_COUNT) {
+        return nullptr;
+      }
+      if (_ports[_port] == nullptr) {
+        _ports[_port] = new ModulinoHubPort(_port, this);
+      }
+      return _ports[_port];
+    }
+
+    void removePort(int _port) {
+      if (_port < 0 || _port >= MODULINO_HUB_PORT_COUNT) {
+        return;
+      }
+      if (_ports[_port] != nullptr) {
+        delete _ports[_port];
+        _ports[_port] = nullptr;
+      }
+    }
+
     int select(int port) {
       Modulino._wire->beginTransmission(_address);
       Modulino._wire->write(1 << port);
@@ -102,13 +135,14 @@ class ModulinoHub {
     }
   private:
     int _address;
+    ModulinoHubPort* _ports[MODULINO_HUB_PORT_COUNT] = {};
 };
 
 class Module : public Printable {
 public:
   Module(uint8_t address = 0xFF, const char* name = "", ModulinoHubPort* hubPort = nullptr)
     : address(address), name((char *)name), hubPort(hubPort) {}
-  virtual ~Module() {}  
+  virtual ~Module() {}
   bool begin() {
     if (address >= 0x7F) {
       address = discover() / 2;  // divide by 2 to match address in fw main.c
@@ -534,6 +568,13 @@ public:
     : Module(address, "MOVEMENT", hubPort) {}
   ModulinoMovement(ModulinoHubPort* hubPort, uint8_t address = 0x6A)
     : Module(address, "MOVEMENT", hubPort) {}
+
+  ~ModulinoMovement() {
+    if (_imu != nullptr) {
+      delete _imu;
+    }
+  }
+
   bool begin() {
     if (hubPort != nullptr) {
       hubPort->select();
@@ -551,6 +592,10 @@ public:
   operator bool() {
     return (initialized != 0);
   }
+
+  ModulinoMovement(const ModulinoMovement&) = delete;
+  ModulinoMovement& operator=(const ModulinoMovement&) = delete;
+
   int update() {
     if (initialized) {
       if (hubPort != nullptr) {
@@ -607,7 +652,21 @@ class ModulinoThermo: public Module {
 public:
   ModulinoThermo(ModulinoHubPort* hubPort = nullptr)
   : Module(0xFF, "THERMO", hubPort) {}
+
+  ~ModulinoThermo() {
+    if (_sensor_hs300x != nullptr) {
+      delete _sensor_hs300x;
+    }
+    if (_sensor_sht31 != nullptr) {
+      delete _sensor_sht31;
+    }
+  }
+
   bool begin() {
+    if (initialized) {
+      return true;
+    }
+
     if (hubPort != nullptr) {
       hubPort->select();
     }
@@ -634,6 +693,9 @@ public:
   operator bool() {
     return (initialized != 0);
   }
+
+  ModulinoThermo(const ModulinoThermo&) = delete;
+  ModulinoThermo& operator=(const ModulinoThermo&) = delete;
 
   /**
    * Get the relative humidity percentage from the sensor.
@@ -705,6 +767,15 @@ class ModulinoPressure : public Module {
 public:
   ModulinoPressure(ModulinoHubPort* hubPort = nullptr)
     : Module(0xFF, "PRESSURE", hubPort) {}
+
+  ~ModulinoPressure() {
+    if (_barometer != nullptr) {
+      delete _barometer;
+    }
+  }
+  ModulinoPressure(const ModulinoPressure&) = delete;
+  ModulinoPressure& operator=(const ModulinoPressure&) = delete;
+
   bool begin() {
     if (hubPort != nullptr) {
       hubPort->select();
@@ -761,6 +832,15 @@ class ModulinoLight : public Module {
 public:
   ModulinoLight(ModulinoHubPort* hubPort = nullptr)
     : Module(0xFF, "LIGHT", hubPort) {}
+
+  ~ModulinoLight() {
+    if (_light != nullptr) {
+      delete _light;
+    }
+  }
+  ModulinoLight(const ModulinoLight&) = delete;
+  ModulinoLight& operator=(const ModulinoLight&) = delete;
+
   bool begin() {
     if (hubPort != nullptr) {
       hubPort->select();
@@ -930,7 +1010,26 @@ class ModulinoDistance : public Module {
 public:
   ModulinoDistance(ModulinoHubPort* hubPort = nullptr)
     : Module(0xFF, "DISTANCE", hubPort) {}
+
+  ~ModulinoDistance() {
+    if (tof_sensor != nullptr) {
+      delete tof_sensor;
+    }
+    if (tof_sensor_alt != nullptr) {
+      delete tof_sensor_alt;
+    }
+    if (api != nullptr) {
+      delete api;
+    }
+  }
+
+  ModulinoDistance(const ModulinoDistance&) = delete;
+  ModulinoDistance& operator=(const ModulinoDistance&) = delete;
+
   bool begin() {
+    if(tof_sensor != nullptr || tof_sensor_alt != nullptr) {
+      return true;
+    }
 
     if (hubPort != nullptr) {
       hubPort->select();
@@ -943,16 +1042,21 @@ public:
       }
       return false;
     }
-    tof_sensor = new VL53L4CD((TwoWire*)getWire(), -1);
+
+    if (tof_sensor == nullptr) {
+      tof_sensor = new VL53L4CD((TwoWire*)getWire(), -1);
+    }
+
     auto ret = tof_sensor->InitSensor();
     if (ret != VL53L4CD_ERROR_NONE) {
       delete tof_sensor;
       tof_sensor = nullptr;
+    }
+
+    if (tof_sensor == nullptr) {
       tof_sensor_alt = new VL53L4ED((TwoWire*)getWire(), -1);
       ret = tof_sensor_alt->InitSensor();
-      if (ret == VL53L4ED_ERROR_NONE) {
-        api = new _distance_api(tof_sensor_alt);
-      } else {
+      if (ret != VL53L4ED_ERROR_NONE) {
         delete tof_sensor_alt;
         tof_sensor_alt = nullptr;
         if (hubPort != nullptr) {
@@ -960,8 +1064,14 @@ public:
         }
         return false;
       }
-    } else {
-      api = new _distance_api(tof_sensor);
+    }
+
+    if (api == nullptr) {
+      if (tof_sensor != nullptr) {
+        api = new _distance_api(tof_sensor);
+      } else if (tof_sensor_alt != nullptr) {
+        api = new _distance_api(tof_sensor_alt);
+      }
     }
 
     __increaseI2CPriority();
