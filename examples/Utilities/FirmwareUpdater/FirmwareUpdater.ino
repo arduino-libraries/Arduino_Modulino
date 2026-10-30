@@ -38,6 +38,7 @@
 #include "fw.h"
 #include "fw_ledmatrix.h"
 #include "fw_motors.h"
+#include "fw_loadcell.h"
 
 // Reference: STM32 I2C bootloader protocol documentation
 // https://www.st.com/resource/en/application_note/an4221-i2c-protocol-used-in-the-stm32-bootloader-stmicroelectronics.pdf
@@ -52,6 +53,10 @@ bool force_led_matrix = false;
 // Force motors firmware
 // Set this to true if you want to flash the motors firmware regardless of the detected module type
 bool force_motors = false;
+
+// Force load cell firmware
+// Set this to true if you want to flash the load cell firmware regardless of the detected module type
+bool force_loadcell = false;
 
 void setup() {
   Serial.begin(115200);
@@ -72,6 +77,7 @@ void setup() {
 
   bool is_led_matrix = false;
   bool is_motors = false;
+  bool is_loadcell = false;
 
   // Send reset command to module if not already in boot mode
   // IMPORTANT: Connect only ONE module at a time
@@ -86,11 +92,20 @@ void setup() {
       is_motors = (modulino.getWire()->endTransmission() == 0);
     }
 
+    // Check if connected module is a Load Cell (address 0x34)
+    if (!is_led_matrix && !is_motors) {
+      modulino.getWire()->beginTransmission(0x34);
+      is_loadcell = (modulino.getWire()->endTransmission() == 0);
+    }
+
     if (is_led_matrix) {
       Serial.println("led matrix mode");
     }
     if (is_motors) {
       Serial.println("motors mode");
+    }
+    if (is_loadcell) {
+      Serial.println("load cell mode");
     }
 
     // Send reset command to enter bootloader mode
@@ -107,6 +122,9 @@ void setup() {
   } else if (is_motors || force_motors) {
     // Flash Motors firmware
     result = flash(motors_node_base_bin, motors_node_base_bin_len);
+  } else if (is_loadcell || force_loadcell) {
+    // Flash Load Cell firmware
+    result = flash(loadcell_node_base_bin, loadcell_node_base_bin_len);
   } else {
     // Flash standard Modulino firmware
     result = flash(node_base_bin, node_base_bin_len);

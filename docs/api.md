@@ -12,6 +12,7 @@
 | `class` [`ModulinoMovement`](#modulinomovement) | Handles the functionality of Modulino Movement,interfacing with the IMU sensor to get acceleration readings. |
 | `class` [`ModulinoThermo`](#modulinothermo) | Handles the functionality of Modulino Thermo, managing temperature sensors to provide real-time temperature and humidity readings.                                |
 | `class` [`ModulinoDistance`](#modulinodistance) | Handles the functionality of Modulino Distance, enabling distance measurement using ToF (Time-of-Flight) sensors for precise range detection. |
+| `class` [`ModulinoLoadCell`](#modulinoloadcell) | Handles functionality Modulino Load Cell, reading the weight from one or two strain gauge load cells with tare and calibration stored in the module. |
 
 ### ModulinoClass
 
@@ -166,6 +167,47 @@ Represents a Modulino Distance module.
 - **`float get()`**  
   Returns the distance measured by the sensor in millimeters.  
   The measured distance in millimeters if available, `NAN` if the distance reading is invalid.
+
+### ModulinoLoadCell
+Represents Modulino Load Cell module. Channel A (J5, gain 128) is `ModulinoLoadCell::CHANNEL_A`, channel B (J6, gain 32) is `ModulinoLoadCell::CHANNEL_B`; every `channel` argument defaults to A.
+
+#### Methods
+- **`bool begin()`**
+Finds the module, checks that its firmware speaks the protocol of this library and brings it to its power-on state: stored calibration, channel A, 10 SPS. `false` if missing or if its firmware must be updated (FirmwareUpdater example).
+- **`bool available(uint8_t channel)`**
+Reads the module and returns `true` if a new sample arrived on the channel since the last call.
+- **`float getWeight(uint8_t channel)`**
+Weight in grams, filtered and tared. `NAN` if no scale is set.
+- **`int32_t getRaw(uint8_t channel)`**
+Last raw converter sample (signed 24 bit).
+- **`bool setLoadCell(float mVperV, uint32_t capacityGrams, uint8_t channel)`**
+Sets the scale from the cell datasheet (rated output and capacity). Accuracy is the cell tolerance until `calibrate()` is used.
+- **`bool tare(uint8_t channel, uint8_t samples = 10)`**
+Sets the current load as zero, averaging `samples` samples on the module. The channel must be sampled in the current mode: for channel B, `setMode(Mode::B)` or `Mode::A_AND_B` first, otherwise `Result::CHANNEL_INACTIVE`.
+- **`bool calibrate(float knownGrams, uint8_t channel, uint8_t samples = 10)`**
+Computes the scale from a known weight placed on the cell after `tare()`.
+- **`bool saveCalibration()` / `bool eraseCalibration()`**
+Stores in, or erases from, the module the offset, scale, capacity and filter of both channels.
+- **`bool hasStoredCalibration(uint8_t channel)`**
+`true` if the module holds a stored calibration for the channel.
+- **`bool setFilter(uint16_t ms, uint8_t channel)`**
+Low-pass filter on the weight, time constant in ms (0 = off).
+- **`bool setOffset(int32_t counts, uint8_t channel)`**, **`bool setScale(float countsPerGram, uint8_t channel)`**, **`bool setCapacity(uint32_t grams, uint8_t channel)`**
+Set the calibration values directly. `readSettings(channel)` reads them back for `getOffset()`, `getScale()`, `getCapacity()`, `getFilter()`.
+- **`bool isOverCapacity(uint8_t channel)`**, **`bool isSaturated(uint8_t channel)`**, **`bool isWeightValid(uint8_t channel)`**
+Load above the rated capacity; input out of range (cell disconnected or miswired); scale set.
+- **`bool setMode(ModulinoLoadCell::Mode mode)`**
+`Mode::A` (default), `Mode::B`, or `Mode::A_AND_B` (each channel about 1 sample/s at 10 SPS, 7.7 at 80 SPS).
+- **`bool setRate(ModulinoLoadCell::Rate rate)`**
+`Rate::SPS_10` (default, lowest noise, rejects 50/60 Hz mains pickup) or `Rate::SPS_80` (no mains rejection).
+- **`bool powerDown()` / `bool powerUp()`**
+Switch the converter and the bridge excitation off and on.
+- **`ModulinoLoadCell::Result getLastResult()`**
+Outcome of the last command, for example `Result::SIGNAL_TOO_SMALL` after a calibration with too light a weight.
+- **`String getFirmwareVersion()`**
+Firmware version of the module.
+
+---
 
 ## Constants
 

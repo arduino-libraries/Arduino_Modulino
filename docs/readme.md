@@ -20,6 +20,7 @@ The **Modulino** library supports the following hardware modules:
 - **Latch Relay (`ModulinoLatchRelay`)**: Enables safe and efficient switching of external loads.
 - **LED Matrix (`ModulinoLEDMatrix`)**: Customizable visual output ranging from simple indicators to pixel animations.
 - **LEDs (`ModulinoPixels`)**: Control RGB LEDs with customizable display modes.
+- **Load Cell (`ModulinoLoadCell`)**: Weigh with one or two strain gauge load cells, in grams, with tare and a calibration stored in the module.
 - **Light (`ModulinoLight`)**: Detects IR light, recognizes color, and measures surrounding light levels.
 - **Motion (`ModulinoMovement`)**: Interface with the LSM6DSOX IMU sensor to get acceleration values.
 - **Temperature & Humidity (`ModulinoThermo`)**: Get temperature and humidity readings from the HS300x sensor.
@@ -137,6 +138,20 @@ if (light.update()) {
   ModulinoColor color = light.getColor();
 }
 ```
+
+### ModulinoLoadCell
+Reads one or two strain gauge load cells (J5 = channel A, J6 = channel B) and returns the weight in grams. Tare and calibration run on the module, and `saveCalibration()` stores them there, so a calibrated module keeps its calibration on any board. After `begin()` the module samples channel A: `setMode()` selects B or both.
+
+```cpp
+ModulinoLoadCell scale;
+scale.begin();
+scale.setLoadCell(1.0, 5000);  // cell datasheet: 1.0 mV/V, 5 kg
+scale.tare();
+if (scale.available()) {
+  float grams = scale.getWeight();
+}
+```
+
 
 ### ModulinoMovement
 Interfaces with the LSM6DSOX IMU sensor to get acceleration readings.

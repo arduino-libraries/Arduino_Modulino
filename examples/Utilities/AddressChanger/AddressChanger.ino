@@ -32,6 +32,7 @@
  * - Encoder: 0x3B or 0x3A (pinstrap 0x76 or 0x74)
  * - Smartleds: 0x36 (pinstrap 0x6C)
  * - Vibro: 0x38 (pinstrap 0x70)
+ * - Load Cell: 0x34 (pinstrap 0x68)
  * - Distance: 0x29 (fixed, cannot change)
  * - Thermo: 0x44 (fixed, cannot change)
  * - Movement: 0x6A or 0x6B (fixed, cannot change)
@@ -300,6 +301,8 @@ String pinstrapToName(uint8_t pinstrap) {
       return "Vibro";
     case 0x48:
       return "Motors";
+    case 0x68:
+      return "Load Cell";
   }
   return "UNKNOWN";
 }
