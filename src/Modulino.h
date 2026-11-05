@@ -224,6 +224,9 @@ public:
     uint8_t buf[3];
     auto res = read((uint8_t*)buf, 3);
     auto ret = res && (buf[0] != last_status[0] || buf[1] != last_status[1] || buf[2] != last_status[2]);
+    if (!ret) {
+      return false;
+    }
     last_status[0] = buf[0];
     last_status[1] = buf[1];
     last_status[2] = buf[2];
@@ -246,7 +249,7 @@ public:
     return 0xFF;
   }
 private:
-  bool last_status[3];
+  bool last_status[3] = { false, false, false };
   int buttonToIndex(char button) {
     switch (toupper(button)) {
       case 'A': return 0;
@@ -1021,6 +1024,9 @@ public:
     uint8_t buf[3];
     auto res = read((uint8_t*)buf, 3);
     auto ret = res && (buf[0] != last_status[0] || buf[1] != last_status[1] || buf[2] != last_status[2]);
+    if (!ret) {
+      return false;
+    }
     last_status[0] = buf[0];
     last_status[1] = buf[1];
     last_status[2] = buf[2];
@@ -1055,7 +1061,7 @@ public:
     return 0xFF;
   }
 private:
-  bool last_status[3];
+  bool last_status[3] = { false, false, false };
 protected:
   uint8_t match[1] = { 0x28 };  // same as fw main.c
 };
@@ -1070,6 +1076,9 @@ public:
     uint8_t buf[3];
     auto res = read((uint8_t*)buf, 3);
     auto ret = res && (buf[0] != last_status[0] || buf[1] != last_status[1] || buf[2] != last_status[2]);
+    if (!ret) {
+      return false;
+    }
     last_status[0] = buf[0];
     last_status[1] = buf[1];
     last_status[2] = buf[2];
@@ -1110,7 +1119,7 @@ public:
     return 0xFF;
   }
 private:
-  bool last_status[3];
+  bool last_status[3] = { false, false, false };
 protected:
   uint8_t match[1] = { 0x04 };  // same as fw main.c
 };
