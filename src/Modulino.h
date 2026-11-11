@@ -220,13 +220,63 @@ public:
     }
     return isPressed(button[0]);
   }
+
+  bool justPressed(int index) {
+    if ((index < 0) || (index >= 3)) return false;
+    return (last_status[index] && !prev_status[index]);
+  }
+  bool justPressed(char button) {
+    return justPressed(buttonToIndex(button));
+  }
+  bool justPressed(const char *button) {
+
+    if (button == nullptr) return false;
+    return justPressed((char)*button);
+  }
+
+  bool justReleased(int index) {
+    if ((index < 0) || (index >= 3)) return false;
+    return (!last_status[index] && prev_status[index]);
+  }
+  bool justReleased(char button) {
+    return justReleased(buttonToIndex(button));
+  }
+  bool justReleased(const char *button) {
+
+    if (button == nullptr) return false;
+    return justReleased((char)*button);
+  }
+
+  bool wasPressed(int index) {
+    if ((index < 0) || (index >= 3)) return false;
+    return (((was_pressed & 0xF0) == 0xB0) && (was_pressed & (1 << index)));
+  }
+  bool wasPressed(char button) {
+    return wasPressed(buttonToIndex(button));
+  }
+  bool wasPressed(const char *button) {
+
+    if (button == nullptr) return false;
+    return wasPressed((char)*button);
+  }
+
+
   bool update() {
-    uint8_t buf[3];
-    auto res = read((uint8_t*)buf, 3);
+    uint8_t buf[4];
+    auto res = read((uint8_t*)buf, cb_read);
+    if (!res && (cb_read == 4)) {
+      cb_read = 3;  // unmodified buttons
+      res = read((uint8_t*)buf, cb_read);
+    }
+
     auto ret = res && (buf[0] != last_status[0] || buf[1] != last_status[1] || buf[2] != last_status[2]);
-    last_status[0] = buf[0];
-    last_status[1] = buf[1];
-    last_status[2] = buf[2];
+    was_pressed = buf[3];
+    memcpy(prev_status, last_status, 3);
+    memcpy(last_status, buf, 3);
+
+    if (res && (cb_read == 4) && ((was_pressed & 0xF0) == 0xB0) && (was_pressed & 0xF)) {
+      ret = true;
+    }
     return ret;
   }
   void setLeds(bool a, bool b, bool c) {
@@ -246,7 +296,10 @@ public:
     return 0xFF;
   }
 private:
-  bool last_status[3];
+  bool last_status[3] = {0, 0, 0};
+  bool prev_status[3] = {0, 0, 0};
+  uint8_t was_pressed;
+  uint8_t cb_read = 4; // start off full read if that fails try 3 for unupdated buttons.
   int buttonToIndex(char button) {
     switch (toupper(button)) {
       case 'A': return 0;
@@ -308,7 +361,7 @@ public:
   }
 private:
   uint8_t _dz_threshold = 26;
-  uint8_t last_status[3];
+  uint8_t last_status[3] = {0xff, 0xff, 0xff};
 protected:
   uint8_t match[1] = { 0x58 };  // same as fw main.c
 };
